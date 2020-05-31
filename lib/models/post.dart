@@ -90,7 +90,7 @@ class Post {
     if (!isLikedBy(user)) {
       likedUsers.add(currentUser);
       //_database.reference().child("likes").child(postID).push().set({"userID": user.userID, "name": user.name});
-      //_database.reference().child("posts").child(postID).child("likes").push().set({"name":user.name, "userID": user.userID});
+      _database.reference().child("posts").child(postID).child("likes").push().set({"name":user.name, "userID": user.userID});
     }
   }
 

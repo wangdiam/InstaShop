@@ -59,7 +59,7 @@ class _PostWidgetState extends State<PostWidget> {
         .child(widget.post.postID)
         .child("comments");
     _onCommentAddedSubscription = _commentQuery.onChildAdded.listen(onCommentAdded);
-    print("REBUILT POST WIDGET");
+    //print("REBUILT POST WIDGET");
 
 
   }

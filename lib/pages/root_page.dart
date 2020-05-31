@@ -117,8 +117,6 @@ class _RootPageState extends State<RootPage> {
                   });
                   if (user.imageUrl == null) user.imageUrl = "assets/images/wangdiam.jpg";
                   currentUser = user;
-                  print(snapshot.data.value.toString());
-                  print("INITIALIZED USER: " + currentUser.toJson().toString());
                   return MainScaffold(
                     userId: _userId,
                     auth: widget.auth,

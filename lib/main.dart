@@ -77,7 +77,7 @@ class _MainScaffoldState extends State<MainScaffold> with AutomaticKeepAliveClie
         .child("posts");
     //_onPostAddedSubscription = _postQuery.onChildAdded.listen(onPostAdded);
     _userInfoQuery = _database.reference().child("users");
-    print("MAIN: " + currentUser.toJson().toString());
+    //print("MAIN: " + currentUser.toJson().toString());
   }
 
   @override
@@ -90,7 +90,7 @@ class _MainScaffoldState extends State<MainScaffold> with AutomaticKeepAliveClie
 
 
   onPostAdded(Event event) {
-    print("post added!");
+    //print("post added!");
     Post post = Post.fromSnapshot(event.snapshot);
     setState(() {
       _postList.add(post);
@@ -128,7 +128,7 @@ class _MainScaffoldState extends State<MainScaffold> with AutomaticKeepAliveClie
 
   void _onTabTapped(BuildContext context, int index) {
     if (index == _kAddPhotoTabIndex) {
-      print("BEFORE post: " + currentUser.toJson().toString());
+      //print("BEFORE post: " + currentUser.toJson().toString());
       Post post = Post(
           user: currentUser,
           imageUrls: [
@@ -171,7 +171,7 @@ class _MainScaffoldState extends State<MainScaffold> with AutomaticKeepAliveClie
       case 0:
         _scrollController =
             ScrollController(initialScrollOffset: _lastFeedScrollOffset);
-        print("REBUILDING BODY");
+        //print("REBUILDING BODY");
         return HomeFeedPage(scrollController: _scrollController, posts: _postList, userID: userID);
       default:
         const tabIndexToNameMap = {

@@ -205,7 +205,7 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
         child: CircleAvatar(
           backgroundColor: Colors.transparent,
           radius: 48.0,
-          child: Image.asset('assets/images/launcher_groot.png'),
+          child: Image.asset('assets/images/ic_launcher/web_hi_res_512.png'),
         ),
       ),
     );

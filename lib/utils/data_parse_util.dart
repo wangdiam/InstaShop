@@ -24,7 +24,6 @@ const POSTEDAT = "postedAt";
 class DataParseUtils {
 
   User mapToUser(Map map) {
-    print("MAP TO USER: " + map.toString());
     try {
       String name = map[USERNAME];
       String userID = map[USERID];
@@ -40,7 +39,6 @@ class DataParseUtils {
     String postedAt = map[POSTEDAT];
     String location = map[LOCATION];
     User user = mapToUser(map[USER]);
-    print("MAP TO POST COMMENTS: " + map[COMMENTS].toString());
     List<Comment> comments = jsonArrayToCommentList(map[COMMENTS]);
     List<User> likedUsers = mapToLikedUsersList(map[LIKEDUSERS]);
     List<dynamic> imageUrls = map[IMAGEURLS];
@@ -79,9 +77,7 @@ class DataParseUtils {
   List<Comment> mapToCommentList(Map map) {
     try {
       List<Comment> list = List();
-      print("MAPTOCOMMENTLIST: " + map.toString());
       map.forEach((key, value) {
-        print("VALUE: " + value);
         value.forEach((key, v) {
           String commentedAt = map[COMMENTEDAT];
           String postID = map[POSTID];

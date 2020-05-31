@@ -27,15 +27,20 @@ class _HomeFeedPageState extends State<HomeFeedPage> with AutomaticKeepAliveClie
     super.dispose();
   }
 
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    _onRefresh();
+  }
+
   void _onRefresh() async {
     // monitor network fetch
     final dbRef = FirebaseDatabase.instance.reference().child("posts").once().then((value) {
-      print(value.value.toString());
       widget.posts.clear();
       value.value.forEach((k, v) {
         setState(() {
           widget.posts.add(DataParseUtils().mapToPost(k, v));
-          print("POSTS LAST: " + widget.posts.last.toJson().toString());
         });
       });
       widget.posts.sort((a,b) => int.parse(a.postedAt).compareTo(int.parse(b.postedAt)));
@@ -67,7 +72,6 @@ class _HomeFeedPageState extends State<HomeFeedPage> with AutomaticKeepAliveClie
       onLoading: _onLoading,
       child: ListView.builder(
         itemBuilder: (ctx, i) {
-          print("POST ${i}: " + posts[i].toJson().toString());
           return PostWidget(posts[i], currentUser.userID);
         },
         itemCount: widget.posts.length ,
