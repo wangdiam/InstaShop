@@ -50,7 +50,6 @@ class _PostWidgetState extends State<PostWidget> {
 
   @override
   void initState() {
-    widget.post.comments = List();
     super.initState();
 
     _commentQuery = _database
@@ -58,15 +57,10 @@ class _PostWidgetState extends State<PostWidget> {
         .child("posts")
         .child(widget.post.postID)
         .child("comments");
-    _onCommentAddedSubscription = _commentQuery.onChildAdded.listen(onCommentAdded);
-    //print("REBUILT POST WIDGET");
-
-
   }
   @override
   void dispose() {
     _doubleTapImageEvents.close();
-    _onCommentAddedSubscription.cancel();
     super.dispose();
   }
 

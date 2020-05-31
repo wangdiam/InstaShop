@@ -38,11 +38,15 @@ class _HomeFeedPageState extends State<HomeFeedPage> with AutomaticKeepAliveClie
     // monitor network fetch
     final dbRef = FirebaseDatabase.instance.reference().child("posts").once().then((value) {
       widget.posts.clear();
-      value.value.forEach((k, v) {
-        setState(() {
-          widget.posts.add(DataParseUtils().mapToPost(k, v));
+      if (value.value != null) {
+        value.value.forEach((k, v) {
+          setState(() {
+            Post post = DataParseUtils().mapToPost(k, v);
+            post.comments.sort((a,b) => int.parse(a.commentedAt).compareTo(int.parse(b.commentedAt)));
+            widget.posts.add(post);
+          });
         });
-      });
+      }
       widget.posts.sort((a,b) => int.parse(a.postedAt).compareTo(int.parse(b.postedAt)));
       _refreshController.refreshCompleted();
     });
@@ -54,10 +58,6 @@ class _HomeFeedPageState extends State<HomeFeedPage> with AutomaticKeepAliveClie
     await Future.delayed(Duration(milliseconds: 1000));
     // if failed,use loadFailed(),if no data return,use LoadNodata()
     //items.add((items.length+1).toString());
-    if(mounted)
-      setState(() {
-
-      });
     _refreshController.loadComplete();
   }
 
@@ -70,13 +70,26 @@ class _HomeFeedPageState extends State<HomeFeedPage> with AutomaticKeepAliveClie
       controller: _refreshController,
       onRefresh: _onRefresh,
       onLoading: _onLoading,
-      child: ListView.builder(
+      child: widget.posts.length > 0 ? ListView.builder(
         itemBuilder: (ctx, i) {
           return PostWidget(posts[i], currentUser.userID);
         },
         itemCount: widget.posts.length ,
         controller: widget.scrollController,
-      ),
+      ) : Center(
+        child: Padding(
+          padding: const EdgeInsets.only(top: 200.0, left: 32.0, right: 32.0),
+          child: Column(
+            children: <Widget>[
+              Text(
+                'This is your home feed. Start following people to see their latest items here.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 20.0),
+              ),
+            ],
+          ),
+        ),
+      )
     );
   }
 

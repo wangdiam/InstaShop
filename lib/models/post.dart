@@ -105,6 +105,8 @@ class Post {
 
 
   void addComment(Comment comment) {
+    comments.add(comment);
+    comments.sort((a,b) => int.parse(a.commentedAt).compareTo(int.parse(b.commentedAt)));
     _database.reference().child("posts").child(postID).child("comments").push().set(comment.toJson());
   }
 }
