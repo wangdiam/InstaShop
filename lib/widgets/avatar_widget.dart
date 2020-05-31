@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:instashop/models/models.dart';
+import 'package:instashop/models/user.dart';
 
 class AvatarWidget extends StatelessWidget {
   final User user;

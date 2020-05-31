@@ -1,8 +1,13 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
-import 'package:instashop/models/models.dart';
+import 'package:instashop/models/user.dart';
 import 'package:instashop/pages/login_signup_page.dart';
 import 'package:instashop/services/authentication.dart';
 import 'package:instashop/main.dart';
+import 'package:instashop/utils/data_parse_util.dart';
+
+User currentUser;
 
 enum AuthStatus {
   NOT_DETERMINED,
@@ -20,6 +25,7 @@ class RootPage extends StatefulWidget {
 }
 
 class _RootPageState extends State<RootPage> {
+  final FirebaseDatabase _database = FirebaseDatabase.instance;
   AuthStatus authStatus = AuthStatus.NOT_DETERMINED;
   String _userId = "";
   User user;
@@ -31,9 +37,9 @@ class _RootPageState extends State<RootPage> {
       setState(() {
         if (user != null) {
           _userId = user?.uid;
+          authStatus =
+          user?.uid == null ? AuthStatus.NOT_LOGGED_IN : AuthStatus.LOGGED_IN;
         }
-        authStatus =
-        user?.uid == null ? AuthStatus.NOT_LOGGED_IN : AuthStatus.LOGGED_IN;
       });
     });
   }
@@ -49,7 +55,22 @@ class _RootPageState extends State<RootPage> {
     });
   }
 
-
+  Future<void> getUserInfo(String userID) async {
+    await _database.reference().once()
+        .then((value) {
+      setState(() {
+        if (value.value != null) {
+          print("USER INITIALIZATION");
+          Map<dynamic,dynamic> map = value.value["users"];
+          List<Map<dynamic,dynamic>> userInfoList = List();
+          map.forEach((key, value) {
+            userInfoList.add(value);
+          });
+          currentUser = User(name: userInfoList.last["username"], userID: userInfoList.last["userID"], imageUrl: "assets/images/wangdiam.jpg");
+        }
+      });
+    });
+  }
 
   void logoutCallback() {
     setState(() {
@@ -67,12 +88,15 @@ class _RootPageState extends State<RootPage> {
     );
   }
 
+
+
   @override
   Widget build(BuildContext context) {
     switch (authStatus) {
+//      case AuthStatus.NOT_DETERMINED:
+//        return buildWaitingScreen();
+//        break;
       case AuthStatus.NOT_DETERMINED:
-        return buildWaitingScreen();
-        break;
       case AuthStatus.NOT_LOGGED_IN:
         return new LoginSignupPage(
           auth: widget.auth,
@@ -80,12 +104,40 @@ class _RootPageState extends State<RootPage> {
         );
         break;
       case AuthStatus.LOGGED_IN:
+        //currentUser = User(name: _username, userID: userId, imageUrl: "assets/images/wangdiam.jpg");
         if (_userId.length > 0 && _userId != null) {
-          return MainScaffold(
-            userId: _userId,
-            auth: widget.auth,
-            logoutCallback: logoutCallback,
-          );
+          try {
+            return FutureBuilder(
+              future: _database.reference().child("users").orderByChild('userID').equalTo(_userId).once(),
+              builder: (context, AsyncSnapshot snapshot) {
+                if (snapshot.hasData && snapshot.data.value != null) {
+                  User user;
+                  snapshot.data.value.forEach((key, v) {
+                    user = DataParseUtils().mapToUser(v);
+                  });
+                  if (user.imageUrl == null) user.imageUrl = "assets/images/wangdiam.jpg";
+                  currentUser = user;
+                  print(snapshot.data.value.toString());
+                  print("INITIALIZED USER: " + currentUser.toJson().toString());
+                  return MainScaffold(
+                    userId: _userId,
+                    auth: widget.auth,
+                    logoutCallback: logoutCallback,
+                  );
+                } else {
+                  return LoginSignupPage(
+                    auth: widget.auth,
+                    loginCallback: loginCallback,
+                  );
+                }
+              },
+            );
+          } catch (e) {
+            return LoginSignupPage(
+              auth: widget.auth,
+              loginCallback: loginCallback,
+            );
+          }
         } else
           return buildWaitingScreen();
         break;

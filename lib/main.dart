@@ -3,14 +3,14 @@ import 'dart:async';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:instashop/models/post.dart';
 import 'package:outline_material_icons/outline_material_icons.dart';
 import 'package:instashop/pages/home_feed_page.dart';
 import 'package:instashop/utils/ui_utils.dart';
 import 'package:instashop/services/authentication.dart';
 import 'package:instashop/pages/root_page.dart';
-import 'package:instashop/widgets/post_widget.dart';
+import 'package:instashop/models/user.dart';
 
-import 'models/models.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,7 +24,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Instagroot',
+      title: 'InstaShop',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.blueGrey,
@@ -56,8 +56,9 @@ class _MainScaffoldState extends State<MainScaffold> with AutomaticKeepAliveClie
   StreamSubscription<Event> _onPostAddedSubscription;
 
   Query _postQuery;
+  Query _userInfoQuery;
   List<Post> _postList;
-  User currentUser;
+ 
 
   final PageStorageBucket bucket = PageStorageBucket();
 
@@ -74,8 +75,9 @@ class _MainScaffoldState extends State<MainScaffold> with AutomaticKeepAliveClie
     _postQuery = _database
         .reference()
         .child("posts");
-    _onPostAddedSubscription = _postQuery.onChildAdded.listen(onPostAdded);
-    currentUser = User(name: "wangdiam", imageUrl: "", userID: widget.userId);
+    //_onPostAddedSubscription = _postQuery.onChildAdded.listen(onPostAdded);
+    _userInfoQuery = _database.reference().child("users");
+    print("MAIN: " + currentUser.toJson().toString());
   }
 
   @override
@@ -85,10 +87,11 @@ class _MainScaffoldState extends State<MainScaffold> with AutomaticKeepAliveClie
     super.dispose();
   }
 
+
+
   onPostAdded(Event event) {
+    print("post added!");
     Post post = Post.fromSnapshot(event.snapshot);
-    //post.user = User(name: post.usermap["name"], userID: post.usermap["userID"], imageUrl: post.usermap["imageUrl"]);
-    print(post.toJSON().toString());
     setState(() {
       _postList.add(post);
     });
@@ -125,19 +128,19 @@ class _MainScaffoldState extends State<MainScaffold> with AutomaticKeepAliveClie
 
   void _onTabTapped(BuildContext context, int index) {
     if (index == _kAddPhotoTabIndex) {
+      print("BEFORE post: " + currentUser.toJson().toString());
       Post post = Post(
           user: currentUser,
           imageUrls: [
             'assets/images/balenciaga_kicks.jpg',
+            'assets/images/yeezys.jpg'
           ],
-          likes: [],
+          likedUsers: [],
           comments: [],
           location: 'Singapore',
           postedAt: DateTime.now().millisecondsSinceEpoch.toString()
       );
-      print(post.toJSON().toString());
-      print("CURRENTUSER " + currentUser.toJSON().toString());
-      _database.reference().child("posts").push().set(post.toJSON());
+      _database.reference().child("posts").push().set(post.toJson());
     } else if (index == _tabSelectedIndex) {
       _scrollToTop();
     } else {
@@ -168,6 +171,7 @@ class _MainScaffoldState extends State<MainScaffold> with AutomaticKeepAliveClie
       case 0:
         _scrollController =
             ScrollController(initialScrollOffset: _lastFeedScrollOffset);
+        print("REBUILDING BODY");
         return HomeFeedPage(scrollController: _scrollController, posts: _postList, userID: userID);
       default:
         const tabIndexToNameMap = {

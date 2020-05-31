@@ -1,8 +1,10 @@
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
-import 'package:instashop/models/models.dart';
+import 'package:instashop/models/user.dart';
+import 'package:instashop/pages/root_page.dart';
 import 'package:instashop/services/authentication.dart';
 import 'package:instashop/main.dart';
+
 
 class LoginSignupPage extends StatefulWidget {
   LoginSignupPage({this.auth, this.loginCallback});
@@ -28,6 +30,7 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
   bool _isLoginForm;
   bool _isLoading;
 
+  
   // Check if form is valid before perform login or signup
   bool validateAndSave() {
     final form = _formKey.currentState;
@@ -50,16 +53,17 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
         if (_isLoginForm) {
           userId = await widget.auth.signIn(_email, _password);
           print('Signed in: $userId');
-          _database.reference().child("users").child(userId).push().set({
-            "email": _email,
-            "username": _username,
-            "userID": userId
-          });
+
         } else {
           userId = await widget.auth.signUp(_email, _password);
           //widget.auth.sendEmailVerification();
           //_showVerifyEmailSentDialog();
           print('Signed up user: $userId');
+          _database.reference().child("users").push().set({
+            "email": _email,
+            "username": _username,
+            "userID": userId
+          });
         }
         setState(() {
           _isLoading = false;

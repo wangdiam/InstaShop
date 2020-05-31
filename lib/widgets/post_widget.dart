@@ -3,16 +3,17 @@ import 'dart:async';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:instashop/models/comment.dart';
+import 'package:instashop/models/post.dart';
+import 'package:instashop/models/user.dart';
+import 'package:instashop/pages/root_page.dart';
 import 'package:instashop/utils/heart_icon_animator.dart';
 import 'package:instashop/utils/heart_overlay_animator.dart';
 import 'package:outline_material_icons/outline_material_icons.dart';
 import 'package:carousel_slider/carousel_slider.dart';
-import 'package:instashop/models/models.dart';
 import 'package:instashop/widgets/avatar_widget.dart';
 import 'package:instashop/widgets/comment_widget.dart';
 import 'package:instashop/utils/ui_utils.dart';
-
-import '../main.dart';
 
 class Choice {
   const Choice({this.title, this.icon});
@@ -35,47 +36,44 @@ class PostWidget extends StatefulWidget {
   _PostWidgetState createState() => _PostWidgetState();
 }
 
-class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMixin<PostWidget>{
+class _PostWidgetState extends State<PostWidget> {
   final StreamController<void> _doubleTapImageEvents =
       StreamController.broadcast();
   bool _isSaved = false;
   int _currentImageIndex = 0;
-  Choice _selectedChoice = choices[0];
+  int _selectedChoice = 0;
   final FirebaseDatabase _database = FirebaseDatabase.instance;
-  Query _commentQuery;
-  List<Comment> _commentList;
+  bool liked = false;
   StreamSubscription<Event> _onCommentAddedSubscription;
+  Query _commentQuery;
 
-
-
-  @override
-  bool get wantKeepAlive => true;
 
   @override
   void initState() {
+    widget.post.comments = List();
+    super.initState();
+
     _commentQuery = _database
         .reference()
         .child("posts")
+        .child(widget.post.postID)
         .child("comments");
-        /*.orderByChild("userId")
-        .equalTo(widget.userId);*/
     _onCommentAddedSubscription = _commentQuery.onChildAdded.listen(onCommentAdded);
-    _commentList = List();
-    print(widget.post.toJSON().toString());
-    super.initState();
+    print("REBUILT POST WIDGET");
+
+
   }
   @override
   void dispose() {
     _doubleTapImageEvents.close();
+    _onCommentAddedSubscription.cancel();
     super.dispose();
   }
 
   void onCommentAdded(Event event) {
-    print("onCommentAdded invoked");
     Comment comment = Comment.fromSnapshot(event.snapshot);
-    comment.user = User(name: comment.map["name"], userID: comment.map["userID"], imageUrl: comment.map["imageUrl"]);
     setState(() {
-      _commentList.add(comment);
+      widget.post.comments.add(comment);
     });
   }
 
@@ -88,18 +86,19 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
     _doubleTapImageEvents.sink.add(null);
   }
 
+  void _toggleIsSaved() {
+    setState(() => _isSaved = !_isSaved);
+  }
+
   void _togglePostIsLiked() {
     setState(() => widget.post.toggleLikeFor(currentUser));
     //send request to server to like post
-  }
-  void _toggleIsSaved() {
-    setState(() => _isSaved = !_isSaved);
   }
 
   void _select(Choice choice) {
     // Causes the app to rebuild with the new _selectedChoice.
     setState(() {
-      _selectedChoice = choice;
+      _selectedChoice = 0;
       //TODO: submit postID of post for report
     });
   }
@@ -119,7 +118,6 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
                   text: text,
                   user: currentUser,
                   commentedAt: DateTime.now().millisecondsSinceEpoch.toString(),
-                  likes: [],
                   postID: widget.post.postID
                 ));
               });
@@ -133,6 +131,12 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
 
   @override
   Widget build(BuildContext context) {
+//    print("CURRENT USER " + currentUser.toJson().toString());
+//    print("is liked by currentuser " + widget.post.isLikedBy(currentUser).toString());
+//    print("Post JSON: " + widget.post.toJson().toString());
+//    print("Post username " + widget.post.user.name);
+//    print("Post likelist: " + widget.post.likedUsers.toString());
+//    print("Post comments: " + widget.post.comments.toString());
     return Column(
       children: <Widget>[
         // User Details
@@ -240,11 +244,10 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
         Padding(
           padding: const EdgeInsets.only(left: 16.0, bottom: 16.0, right: 4.0),
           child: Column(
-
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               // Liked by
-              if (widget.post.likes.isNotEmpty)
+              if (widget.post.likedUsers.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8.0),
                   child: Row(
@@ -252,15 +255,15 @@ class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMi
                       Text('Liked by '),
                       Text.rich(
                           TextSpan(
-                              text: widget.post.likes[0].user.name,
+                              text: widget.post.likedUsers[0].name,
                               style: bold,
                               recognizer: TapGestureRecognizer()
                                 ..onTap = () {
                                   print('Clicked Profile name');
                                 })),
-                      if (widget.post.likes.length > 1) ...[
+                      if (widget.post.likedUsers.length > 1) ...[
                         Text(' and'),
-                        Text(' ${widget.post.likes.length - 1} others',
+                        Text(' ${widget.post.likedUsers.length - 1} others',
                             style: bold),
                       ]
                     ],

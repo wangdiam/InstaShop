@@ -1,6 +1,10 @@
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
+import 'package:instashop/models/post.dart';
+import 'package:instashop/pages/root_page.dart';
+import 'package:instashop/utils/data_parse_util.dart';
 import 'package:instashop/widgets/post_widget.dart';
-import 'package:instashop/models/models.dart';
+import 'package:pull_to_refresh/pull_to_refresh.dart';
 
 class HomeFeedPage extends StatefulWidget {
   final ScrollController scrollController;
@@ -15,85 +19,63 @@ class HomeFeedPage extends StatefulWidget {
 }
 
 class _HomeFeedPageState extends State<HomeFeedPage> with AutomaticKeepAliveClientMixin<HomeFeedPage>{
-
+  RefreshController _refreshController =
+  RefreshController(initialRefresh: false);
 
   @override
   void dispose() {
     super.dispose();
   }
 
-  /*
-    *//*
-    TODO: Fetch from Firebase
-    * *//*
-    Post(
-      user: user2,
-      imageUrls: [
-        'assets/images/balenciaga_kicks.jpg',
-      ],
-      likes: [
-        Like(user: user1),
-        Like(user: user3),
-        Like(user: user4),
-        Like(user: user5),
-      ],
-      comments: [
-        Comment(
-          text: 'Fresh new kicks from Balenciaga!',
-          commentedAt: DateTime(2020, 5, 23, 12, 35, 0),
-          user: user2,
-          likes: [],
-        ),
-        Comment(
-          text: 'Wow nice!',
-          user: user1,
-          commentedAt: DateTime(2020, 5, 23, 14, 35, 0),
-          likes: [Like(user: user1)],
-        ),
-      ],
-      location: 'Earth',
-      postedAt: DateTime(2020, 5, 23, 12, 35, 0),
-    ),
-    Post(
-      user: user1,
-      imageUrls: ['assets/images/yeezys.jpg'],
-      likes: [],
-      comments: [],
-      location: 'Singapore',
-      postedAt: DateTime(2020, 5, 21, 6, 0, 0),
-    ),
-    Post(
-      user: user6,
-      imageUrls: ['assets/images/off_white_shoes.jpg'],
-      likes: [
-        Like(user: user1),
-        Like(user: user3),],
-      comments: [
-        Comment(
-          text: "ss20 women's Off-White™ black leather sandals with lace-up closure with knots now available online at off---white.com",
-          user: user6,
-          commentedAt: DateTime(2020, 5, 2, 0, 0, 0),
-          likes: []
-        )
-      ],
-      location: 'Bukit Timah',
-      postedAt: DateTime(2020, 5, 2, 0, 0, 0),
-    ),
-  ]*/
+  void _onRefresh() async {
+    // monitor network fetch
+    final dbRef = FirebaseDatabase.instance.reference().child("posts").once().then((value) {
+      print(value.value.toString());
+      widget.posts.clear();
+      value.value.forEach((k, v) {
+        setState(() {
+          widget.posts.add(DataParseUtils().mapToPost(k, v));
+          print("POSTS LAST: " + widget.posts.last.toJson().toString());
+        });
+      });
+      widget.posts.sort((a,b) => int.parse(a.postedAt).compareTo(int.parse(b.postedAt)));
+      _refreshController.refreshCompleted();
+    });
+    // if failed,use refreshFailed()
+  }
+
+  void _onLoading() async{
+    // monitor network fetch
+    await Future.delayed(Duration(milliseconds: 1000));
+    // if failed,use loadFailed(),if no data return,use LoadNodata()
+    //items.add((items.length+1).toString());
+    if(mounted)
+      setState(() {
+
+      });
+    _refreshController.loadComplete();
+  }
+
 
   @override
   Widget build(BuildContext context) {
     List<Post> posts = widget.posts.reversed.toList();
-    return ListView.builder(
-      itemBuilder: (ctx, i) {
-        return PostWidget(posts[i], widget.userID);
-      },
-      itemCount: widget.posts.length ,
-      controller: widget.scrollController,
+    return SmartRefresher(
+      enablePullDown: true,
+      controller: _refreshController,
+      onRefresh: _onRefresh,
+      onLoading: _onLoading,
+      child: ListView.builder(
+        itemBuilder: (ctx, i) {
+          print("POST ${i}: " + posts[i].toJson().toString());
+          return PostWidget(posts[i], currentUser.userID);
+        },
+        itemCount: widget.posts.length ,
+        controller: widget.scrollController,
+      ),
     );
   }
 
   @override
-  // TODO: implement wantKeepAlive
   bool get wantKeepAlive => true;
 }

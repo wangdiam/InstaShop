@@ -1,10 +1,8 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:instashop/utils/heart_icon_animator.dart';
-import 'package:instashop/models/models.dart';
+import 'package:instashop/models/comment.dart';
 import 'package:instashop/utils/ui_utils.dart';
 
-import '../main.dart';
 
 class CommentWidget extends StatefulWidget {
   final Comment comment;
@@ -13,7 +11,6 @@ class CommentWidget extends StatefulWidget {
 
 
   CommentWidget(this.comment);
-
 
   @override
   _CommentWidgetState createState() => _CommentWidgetState();
@@ -26,6 +23,7 @@ class _CommentWidgetState extends State<CommentWidget> {
   void initState() {
     super.initState();
     flag = widget.comment.flag;
+    //print("COMMENT WIDGET TEXT: " + this.widget.comment.toJson().toString());
   }
 
   @override
@@ -47,7 +45,7 @@ class _CommentWidgetState extends State<CommentWidget> {
           style: bold,
           recognizer: TapGestureRecognizer()
             ..onTap = () {
-              print('Clicked Profile name"');
+              print('Clicked Profile name');
             }),
     ];
     this.widget.comment.text.split(' ').forEach((word) {
@@ -113,7 +111,6 @@ class _CommentWidgetState extends State<CommentWidget> {
 
   @override
   Widget build(BuildContext context) {
-    print("CURRENTUSER " + currentUser.toJSON().toString());
     return Padding(
       padding: const EdgeInsets.only(bottom: 6.0),
       child: Row(
