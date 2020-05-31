@@ -61,7 +61,7 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
           print('Signed up user: $userId');
           _database.reference().child("users").push().set({
             "email": _email,
-            "username": _username,
+            "name": _username,
             "userID": userId
           });
         }
@@ -162,6 +162,7 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
             shrinkWrap: true,
             children: _isLoginForm ? <Widget>[
               showLogo(),
+              showAppName(),
               showEmailInput(),
               showPasswordInput(),
               showPrimaryButton(),
@@ -169,9 +170,10 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
               showErrorMessage(),
             ] : <Widget>[
               showLogo(),
+              showAppName(),
+              showUsernameInput(),
               showEmailInput(),
               showPasswordInput(),
-              showUsernameInput(),
               showPrimaryButton(),
               showSecondaryButton(),
               showErrorMessage(),
@@ -205,7 +207,22 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
         child: CircleAvatar(
           backgroundColor: Colors.transparent,
           radius: 48.0,
-          child: Image.asset('assets/images/ic_launcher/web_hi_res_512.png'),
+          child: Image.asset('assets/images/ic_launcher.png'),
+        ),
+      ),
+    );
+  }
+
+  Widget showAppName() {
+    return Padding(
+      padding: EdgeInsets.all(32.0),
+      child: Center(
+        child: Text(
+          "InstaShop",
+          style: TextStyle(
+            fontSize: 60.0,
+            fontFamily: "Billabong"
+          ),
         ),
       ),
     );
@@ -213,7 +230,7 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
 
   Widget showEmailInput() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(0.0, 100.0, 0.0, 0.0),
+      padding: const EdgeInsets.fromLTRB(0.0, 16.0, 0.0, 0.0),
       child: new TextFormField(
         maxLines: 1,
         keyboardType: TextInputType.emailAddress,
@@ -231,7 +248,7 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
   }
   Widget showUsernameInput() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(0.0, 100.0, 0.0, 0.0),
+      padding: const EdgeInsets.fromLTRB(0.0, 16.0, 0.0, 0.0),
       child: new TextFormField(
         maxLines: 1,
         keyboardType: TextInputType.text,

@@ -83,7 +83,6 @@ class _MainScaffoldState extends State<MainScaffold> with AutomaticKeepAliveClie
   @override
   void dispose() {
     _disposeScrollController();
-    _onPostAddedSubscription.cancel();
     super.dispose();
   }
 
@@ -148,6 +147,7 @@ class _MainScaffoldState extends State<MainScaffold> with AutomaticKeepAliveClie
     }
   }
 
+
   Widget _buildPlaceHolderTab(String tabName) {
     return Center(
       child: Padding(
@@ -160,6 +160,10 @@ class _MainScaffoldState extends State<MainScaffold> with AutomaticKeepAliveClie
               style: TextStyle(fontSize: 28.0),
             ),
             Image.asset('assets/images/building.gif'),
+            MaterialButton(
+                onPressed: signOut,
+                child: Text("Sign Out"),
+            )
           ],
         ),
       ),

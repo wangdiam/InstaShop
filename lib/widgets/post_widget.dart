@@ -44,19 +44,12 @@ class _PostWidgetState extends State<PostWidget> {
   int _selectedChoice = 0;
   final FirebaseDatabase _database = FirebaseDatabase.instance;
   bool liked = false;
-  StreamSubscription<Event> _onCommentAddedSubscription;
-  Query _commentQuery;
 
 
   @override
   void initState() {
     super.initState();
-
-    _commentQuery = _database
-        .reference()
-        .child("posts")
-        .child(widget.post.postID)
-        .child("comments");
+    _currentImageIndex = 0;
   }
   @override
   void dispose() {
@@ -64,12 +57,6 @@ class _PostWidgetState extends State<PostWidget> {
     super.dispose();
   }
 
-  void onCommentAdded(Event event) {
-    Comment comment = Comment.fromSnapshot(event.snapshot);
-    setState(() {
-      widget.post.comments.add(comment);
-    });
-  }
 
   void _updateImageIndex(int index) {
     setState(() => _currentImageIndex = index);
@@ -84,8 +71,16 @@ class _PostWidgetState extends State<PostWidget> {
     setState(() => _isSaved = !_isSaved);
   }
 
-  void _togglePostIsLiked() {
-    setState(() => widget.post.toggleLikeFor(currentUser));
+  void _togglePostIsLiked() async {
+    await widget.post.toggleLikeFor(currentUser).then((value) {
+      setState(() {
+        if (widget.post.isLikedBy(currentUser)) {
+          widget.post.removeLike(currentUser);
+        } else {
+          widget.post.addLike(currentUser);
+        }
+      });
+    });
     //send request to server to like post
   }
 

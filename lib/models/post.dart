@@ -88,16 +88,35 @@ class Post {
 
   void addLikeIfUnlikedFor(User user) {
     if (!isLikedBy(user)) {
-      likedUsers.add(currentUser);
       //_database.reference().child("likes").child(postID).push().set({"userID": user.userID, "name": user.name});
       _database.reference().child("posts").child(postID).child("likes").push().set({"name":user.name, "userID": user.userID});
     }
   }
 
-  void toggleLikeFor(User user) {
+  void removeLike(User user) {
+    likedUsers.removeWhere((user) => user.name == currentUser.name);
+  }
+
+  void addLike(User user) {
+    likedUsers.add(currentUser);
+  }
+
+  Future<void> toggleLikeFor(User user) async {
     if (isLikedBy(user)) {
-      likedUsers.removeWhere((user) => user.name == currentUser.name);
-      _database.reference().child("posts").child(postID).child("likes").remove();
+      _database.reference().child("posts").child(postID).child("likes").once().then((snapshot) {
+        print("SNAPSHOT VALUE: " + snapshot.value.toString());
+        List<String> userIDList = List();
+        List<String> userIDKeyList = List();
+        snapshot.value.forEach((key,v) {
+          userIDList.add(v["userID"]);
+          userIDKeyList.add(key);
+        });
+        var exists = userIDList.contains(currentUser.userID);
+        if (exists) {
+          _database.reference().child("posts").child(postID).child("likes").child(userIDKeyList[userIDList.indexOf(currentUser.userID)]).remove();
+        }
+      });
+
     } else {
       addLikeIfUnlikedFor(user);
     }

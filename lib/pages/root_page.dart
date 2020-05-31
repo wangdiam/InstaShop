@@ -55,23 +55,6 @@ class _RootPageState extends State<RootPage> {
     });
   }
 
-  Future<void> getUserInfo(String userID) async {
-    await _database.reference().once()
-        .then((value) {
-      setState(() {
-        if (value.value != null) {
-          print("USER INITIALIZATION");
-          Map<dynamic,dynamic> map = value.value["users"];
-          List<Map<dynamic,dynamic>> userInfoList = List();
-          map.forEach((key, value) {
-            userInfoList.add(value);
-          });
-          currentUser = User(name: userInfoList.last["username"], userID: userInfoList.last["userID"], imageUrl: "assets/images/wangdiam.jpg");
-        }
-      });
-    });
-  }
-
   void logoutCallback() {
     setState(() {
       authStatus = AuthStatus.NOT_LOGGED_IN;
@@ -112,11 +95,13 @@ class _RootPageState extends State<RootPage> {
               builder: (context, AsyncSnapshot snapshot) {
                 if (snapshot.hasData && snapshot.data.value != null) {
                   User user;
+                  print(snapshot.data.value);
                   snapshot.data.value.forEach((key, v) {
                     user = DataParseUtils().mapToUser(v);
                   });
                   if (user.imageUrl == null) user.imageUrl = "assets/images/wangdiam.jpg";
                   currentUser = user;
+                  print(currentUser.toJson().toString());
                   return MainScaffold(
                     userId: _userId,
                     auth: widget.auth,
