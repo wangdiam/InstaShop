@@ -1,13 +1,13 @@
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:instashop/models/user.dart';
 import 'package:instashop/pages/login_signup_page.dart';
 import 'package:instashop/services/authentication.dart';
 import 'package:instashop/main.dart';
-import 'package:instashop/utils/data_parse_util.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-User currentUser;
+User currentUserModel;
+BaseAuth baseAuth = Auth();
+AuthStatus authStatus = AuthStatus.NOT_DETERMINED;
 
 enum AuthStatus {
   NOT_DETERMINED,
@@ -16,24 +16,20 @@ enum AuthStatus {
 }
 
 class RootPage extends StatefulWidget {
-  RootPage({this.auth});
-
-  final BaseAuth auth;
+  RootPage();
 
   @override
   State<StatefulWidget> createState() => new _RootPageState();
 }
 
 class _RootPageState extends State<RootPage> {
-  final FirebaseDatabase _database = FirebaseDatabase.instance;
-  AuthStatus authStatus = AuthStatus.NOT_DETERMINED;
   String _userId = "";
   User user;
 
   @override
   void initState() {
     super.initState();
-    widget.auth.getCurrentUser().then((user) {
+    baseAuth.getCurrentUser().then((user) {
       setState(() {
         if (user != null) {
           _userId = user?.uid;
@@ -45,17 +41,37 @@ class _RootPageState extends State<RootPage> {
   }
 
   void loginCallback() {
-    widget.auth.getCurrentUser().then((user) {
-      setState(() {
-        _userId = user.uid.toString();
+    print("logincallback");
+    print(googleSignIn.currentUser.toString());
+    print(currentUserModel.toString());
+    if (currentUserModel == null) {
+      if (_userId == "") {
+        setState(() {
+          authStatus = AuthStatus.NOT_LOGGED_IN;
+        });
+        return;
+      }
+    } else {
+      baseAuth.getCurrentUser().then((user) {
+        setState(() {
+          _userId = currentUserModel.id;
+        });
       });
-    });
-    setState(() {
-      authStatus = AuthStatus.LOGGED_IN;
-    });
+      setState(() {
+        authStatus = AuthStatus.LOGGED_IN;
+      });
+    }
   }
 
-  void logoutCallback() {
+  void logoutCallback() async {
+    print("logout");
+    await auth.signOut();
+    await googleSignIn.signOut();
+
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+
+    currentUserModel = null;
     setState(() {
       authStatus = AuthStatus.NOT_LOGGED_IN;
       _userId = "";
@@ -76,56 +92,28 @@ class _RootPageState extends State<RootPage> {
   @override
   Widget build(BuildContext context) {
     switch (authStatus) {
-//      case AuthStatus.NOT_DETERMINED:
-//        return buildWaitingScreen();
-//        break;
       case AuthStatus.NOT_DETERMINED:
       case AuthStatus.NOT_LOGGED_IN:
         return new LoginSignupPage(
-          auth: widget.auth,
           loginCallback: loginCallback,
         );
         break;
       case AuthStatus.LOGGED_IN:
         //currentUser = User(name: _username, userID: userId, imageUrl: "assets/images/wangdiam.jpg");
-        if (_userId.length > 0 && _userId != null) {
-          try {
-            return FutureBuilder(
-              future: _database.reference().child("users").orderByChild('userID').equalTo(_userId).once(),
-              builder: (context, AsyncSnapshot snapshot) {
-                if (snapshot.hasData && snapshot.data.value != null) {
-                  User user;
-                  print(snapshot.data.value);
-                  snapshot.data.value.forEach((key, v) {
-                    user = DataParseUtils().mapToUser(v);
-                  });
-                  if (user.imageUrl == null) user.imageUrl = "assets/images/wangdiam.jpg";
-                  currentUser = user;
-                  print(currentUser.toJson().toString());
-                  return MainScaffold(
-                    userId: _userId,
-                    auth: widget.auth,
-                    logoutCallback: logoutCallback,
-                  );
-                } else {
-                  return LoginSignupPage(
-                    auth: widget.auth,
-                    loginCallback: loginCallback,
-                  );
-                }
-              },
-            );
-          } catch (e) {
-            return LoginSignupPage(
-              auth: widget.auth,
-              loginCallback: loginCallback,
-            );
-          }
+        if (_userId.length > 0 && _userId != null && currentUserModel != null) {
+          return MainScaffold(
+            userId: currentUserModel.id,
+            logoutCallback: logoutCallback,
+          );
         } else
-          return buildWaitingScreen();
+          return LoginSignupPage(
+            loginCallback: loginCallback,
+          );
         break;
       default:
-        return buildWaitingScreen();
+        return LoginSignupPage(
+          loginCallback: loginCallback,
+        );
     }
   }
 }

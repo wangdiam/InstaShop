@@ -1,24 +1,37 @@
+import 'dart:io';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:instashop/models/user.dart';
+import 'package:instashop/pages/create_account.dart';
 import 'package:instashop/pages/root_page.dart';
 import 'package:instashop/services/authentication.dart';
 import 'package:instashop/main.dart';
 
+final auth = FirebaseAuth.instance;
+final googleSignIn = GoogleSignIn();
+final ref = Firestore.instance.collection('insta_users');
+final FirebaseMessaging _firebaseMessaging = FirebaseMessaging();
 
 class LoginSignupPage extends StatefulWidget {
-  LoginSignupPage({this.auth, this.loginCallback});
+  LoginSignupPage({this.loginCallback});
 
-  final BaseAuth auth;
   final VoidCallback loginCallback;
 
   @override
   State<StatefulWidget> createState() => new _LoginSignupPageState();
+
 }
 
 class _LoginSignupPageState extends State<LoginSignupPage> {
   final _formKey = new GlobalKey<FormState>();
-  final FirebaseDatabase _database = FirebaseDatabase.instance;
+  int _page = 0;
+  bool triedSilentLogin = false;
+  bool setupNotifications = false;
 
   String _email;
   String _password;
@@ -48,27 +61,38 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
       _isLoading = true;
     });
     if (validateAndSave()) {
+      print("LOGIN SAVED");
       String userId = "";
       try {
         if (_isLoginForm) {
-          userId = await widget.auth.signIn(_email, _password);
+          userId = await baseAuth.signIn(_email, _password);
           print('Signed in: $userId');
-
+          await ref.document(userId).get()
+          .then((value) {
+            setState(() {
+              currentUserModel = User.fromDocument(value);
+            });
+          });
         } else {
-          userId = await widget.auth.signUp(_email, _password);
+          userId = await baseAuth.signUp(_email, _password);
           //widget.auth.sendEmailVerification();
           //_showVerifyEmailSentDialog();
           print('Signed up user: $userId');
-          _database.reference().child("users").push().set({
+          ref.document(userId).setData({
+            "id": userId,
+            "username": _username,
+            "photoUrl": "",
             "email": _email,
-            "name": _username,
-            "userID": userId
+            "bio": "",
+            "followers": {},
+            "following": {},
+            "displayName": _username
           });
         }
         setState(() {
           _isLoading = false;
         });
-
+        print("userId length: " + userId.length.toString() + userId.toString());
         if (userId.length > 0 && userId != null && _isLoginForm) {
           widget.loginCallback();
         }
@@ -87,6 +111,167 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
         _isLoading = false;
       });
     }
+  }
+
+  void login() async {
+    print("google login");
+    await _ensureLoggedIn(context)
+    .then((value) {
+      setState(() {
+        triedSilentLogin = true;
+      });
+    });
+  }
+
+  void silentLogin(BuildContext context) async {
+    print("google silentlogin");
+    await _silentLogin(context)
+    .then((value) {
+      setState(() {
+        triedSilentLogin = true;
+      });
+    });
+  }
+
+
+  Future<Null> _ensureLoggedIn(BuildContext context) async {
+    GoogleSignInAccount user = googleSignIn.currentUser;
+    if (user == null) {
+      user = await googleSignIn.signInSilently();
+    }
+    if (user == null) {
+      await googleSignIn.signIn();
+      await tryCreateUserRecord(context);
+    }
+
+    if (await auth.currentUser() == null) {
+
+      final GoogleSignInAccount googleUser = await googleSignIn.signIn();
+      final GoogleSignInAuthentication googleAuth = await googleUser
+          .authentication;
+
+
+      final AuthCredential credential = GoogleAuthProvider.getCredential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      await auth.signInWithCredential(credential);
+    }
+    print("Signed in with credential");
+  }
+
+  Future<Null> _silentLogin(BuildContext context) async {
+    GoogleSignInAccount user = googleSignIn.currentUser;
+
+    if (user == null) {
+      user = await googleSignIn.signInSilently();
+      await tryCreateUserRecord(context);
+      print("tried to create user record at silentlogin");
+    }
+    print("User: " + user.toString());
+    if (await auth.currentUser() == null && user != null) {
+      final GoogleSignInAccount googleUser = await googleSignIn.signIn();
+      final GoogleSignInAuthentication googleAuth = await googleUser
+          .authentication;
+
+      final AuthCredential credential = GoogleAuthProvider.getCredential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+      await auth.signInWithCredential(credential);
+    }
+  }
+
+  void setUpNotifications() {
+    _setUpNotifications();
+    setState(() {
+      setupNotifications = true;
+    });
+  }
+
+  Future<Null> _setUpNotifications() async {
+    if (Platform.isAndroid) {
+      _firebaseMessaging.configure(
+        onMessage: (Map<String, dynamic> message) async {
+          print('on message $message');
+        },
+        onResume: (Map<String, dynamic> message) async {
+          print('on resume $message');
+        },
+        onLaunch: (Map<String, dynamic> message) async {
+          print('on launch $message');
+        },
+      );
+
+      _firebaseMessaging.getToken().then((token) {
+        print("Firebase Messaging Token: " + token);
+
+        Firestore.instance
+            .collection("insta_users")
+            .document(currentUserModel.id)
+            .updateData({"androidNotificationToken": token});
+      });
+    }
+  }
+
+  Future<void> tryCreateUserRecord(BuildContext context) async {
+    GoogleSignInAccount user = googleSignIn.currentUser;
+    if (user == null) {
+      print("googleSignIn.currentUser = null");
+      return null;
+    }
+    DocumentSnapshot userRecord = await ref.document(user.id).get();
+    print("retrieved userRecord");
+    if (userRecord.data == null) {
+      // no user record exists, time to create
+      print("creating userRecord");
+      String userName = await Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (context) => Center(
+              child: Scaffold(
+                  appBar: AppBar(
+                    leading: Container(),
+                    title: Text('Fill out missing data',
+                        style: TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.bold)),
+                    backgroundColor: Colors.white,
+                  ),
+                  body: ListView(
+                    children: <Widget>[
+                      Container(
+                        child: CreateAccount(),
+                      ),
+                    ],
+                  )),
+            )),
+      );
+
+      if (userName != null || userName.length != 0) {
+        ref.document(user.id).setData({
+          "id": user.id,
+          "username": userName,
+          "photoUrl": user.photoUrl,
+          "email": user.email,
+          "displayName": user.displayName,
+          "bio": "",
+          "followers": {},
+          "following": {},
+        });
+      }
+    }
+    print("trying to retrieve currentUserModel");
+    await ref.document(user.id).get().then((value) {
+      setState(() {
+        print(value.toString());
+        currentUserModel = User.fromDocument(value);
+        print("Retrieved currentUserModel");
+        widget.loginCallback();
+      });
+      return null;
+    });
   }
 
   @override
@@ -111,6 +296,13 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (triedSilentLogin == false) {
+      silentLogin(context);
+    }
+
+    if (setupNotifications == false && currentUserModel != null) {
+      setUpNotifications();
+    }
     return new Scaffold(
         body: Stack(
           children: <Widget>[
@@ -165,6 +357,16 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
               showAppName(),
               showEmailInput(),
               showPasswordInput(),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: GestureDetector(
+                  onTap: login,
+                  child: Image.asset(
+                    "assets/images/google_signin_button.png",
+                    height: 60.0,
+                  ),
+                ),
+              ),
               showPrimaryButton(),
               showSecondaryButton(),
               showErrorMessage(),
@@ -267,7 +469,7 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
 
   Widget showPasswordInput() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(0.0, 15.0, 0.0, 0.0),
+      padding: const EdgeInsets.fromLTRB(0.0, 16.0, 0.0, 16.0),
       child: new TextFormField(
         maxLines: 1,
         obscureText: true,
@@ -294,7 +496,7 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
 
   Widget showPrimaryButton() {
     return new Padding(
-        padding: EdgeInsets.fromLTRB(0.0, 45.0, 0.0, 0.0),
+        padding: EdgeInsets.fromLTRB(0.0, 0.0, 0.0, 0.0),
         child: SizedBox(
           height: 40.0,
           child: new RaisedButton(

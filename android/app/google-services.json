@@ -15,6 +15,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "247870036623-baonrk820m0tthd66vse2j31pajrqon6.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.instashop.instashop",
+            "certificate_hash": "8e8ab4231109c04cf39c22ddf8dce9c3de3ef982"
+          }
+        },
+        {
           "client_id": "247870036623-cudbe289v208uc0feja8177q2cn56fa6.apps.googleusercontent.com",
           "client_type": 3
         }
@@ -30,6 +38,13 @@
             {
               "client_id": "247870036623-cudbe289v208uc0feja8177q2cn56fa6.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "247870036623-82jkdinnkbgkh9sp42g17hfjtmndna47.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.instashop.instashop"
+              }
             }
           ]
         }

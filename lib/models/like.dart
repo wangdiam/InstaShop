@@ -9,12 +9,4 @@ class Like {
     @required this.user,
     @required this.likedAt
   });
-
-
-  Map toJSON() {
-    return {
-      user: user.toJson(),
-      likedAt: likedAt
-    };
-  }
 }

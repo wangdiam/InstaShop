@@ -1,11 +1,15 @@
 import 'dart:async';
 
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:instashop/models/comment.dart';
 import 'package:instashop/models/post.dart';
 import 'package:instashop/models/user.dart';
+import 'package:instashop/pages/comment_screen_page.dart';
+import 'package:instashop/pages/profile_page.dart';
 import 'package:instashop/pages/root_page.dart';
 import 'package:instashop/utils/heart_icon_animator.dart';
 import 'package:instashop/utils/heart_overlay_animator.dart';
@@ -42,13 +46,39 @@ class _PostWidgetState extends State<PostWidget> {
   bool _isSaved = false;
   int _currentImageIndex = 0;
   int _selectedChoice = 0;
-  final FirebaseDatabase _database = FirebaseDatabase.instance;
-  bool liked = false;
+  int likeCount = 0;
+  bool liked;
+  bool showHeart = false;
+  var reference = Firestore.instance.collection('insta_posts');
+  List<String> likedUsers = List();
+  List<String> likedUsersId = List();
 
 
   @override
   void initState() {
     super.initState();
+    liked = widget.post.likes[currentUserModel.id] != null && widget.post.likes[currentUserModel.id][currentUserModel.username];
+    print("LIKED: " + liked.toString());
+    print(widget.post.likes[currentUserModel.id]);
+    print(widget.post.postId + " " + liked.toString());
+    print(widget.post.likes.toString());
+    if (widget.post.likes != null) {
+      widget.post.likes.forEach((key,value) {
+        value.forEach((k,v) {
+          print(k.toString());
+          print(v.toString());
+          if (v.toString() == true.toString()) {
+            likedUsers.add(k);
+            likedUsersId.add(key);
+          }
+        });
+      });
+      print("LIKED USERS: " + likedUsers.toString());
+      print("LIKED USERS KEY: " + likedUsersId.toString());
+
+    }
+
+    print(likedUsers.length);
     _currentImageIndex = 0;
   }
   @override
@@ -58,13 +88,81 @@ class _PostWidgetState extends State<PostWidget> {
   }
 
 
+  void _likePost() {
+    var userId = currentUserModel.id;
+    var userName = currentUserModel.username;
+    print(liked);
+    if (liked) {
+      print('removing like');
+      reference.document(widget.post.postId).updateData({
+        'likes.${userId}.${userName}': false,
+        //firestore plugin doesnt support deleting, so it must be nulled / falsed
+      });
+
+      setState(() {
+        likedUsers.remove(currentUserModel.username);
+        print("REMOVED LIKE USER: " + likedUsers.toString());
+        likeCount = likeCount - 1;
+        liked = false;
+        widget.post.likes[userId] = {userName: false};
+      });
+
+      removeActivityFeedItem();
+    }
+
+    else if (!liked) {
+      print('liking');
+      reference.document(widget.post.postId).updateData({
+        'likes.${userId}.${userName}': true
+      });
+
+      addActivityFeedItem();
+
+      setState(() {
+        likedUsers.add(currentUserModel.username);
+        print("ADDED LIKE USER: " + likedUsers.toString());
+        likeCount = likeCount + 1;
+        liked = true;
+        widget.post.likes[userId] = {userName: true};
+        showHeart = true;
+      });
+    }
+  }
+
+  void addActivityFeedItem() {
+    Firestore.instance
+        .collection("insta_a_feed")
+        .document(widget.post.ownerId)
+        .collection("items")
+        .document(widget.post.postId)
+        .setData({
+      "username": currentUserModel.username,
+      "userId": currentUserModel.id,
+      "type": "like",
+      "userProfileImg": currentUserModel.photoUrl,
+      "mediaUrl": widget.post.mediaUrl,
+      "timestamp": DateTime.now(),
+      "postId": widget.post.postId,
+    });
+  }
+
+  void removeActivityFeedItem() {
+    Firestore.instance
+        .collection("insta_a_feed")
+        .document(widget.post.ownerId)
+        .collection("items")
+        .document(widget.post.postId)
+        .delete();
+  }
+
   void _updateImageIndex(int index) {
     setState(() => _currentImageIndex = index);
   }
 
   void _onDoubleTapLikePhoto() {
-    setState(() => widget.post.addLikeIfUnlikedFor(currentUser));
+//    setState(() => widget.post.addLikeIfUnlikedFor(currentUserModel));
     _doubleTapImageEvents.sink.add(null);
+    _likePost();
   }
 
   void _toggleIsSaved() {
@@ -72,15 +170,15 @@ class _PostWidgetState extends State<PostWidget> {
   }
 
   void _togglePostIsLiked() async {
-    await widget.post.toggleLikeFor(currentUser).then((value) {
-      setState(() {
-        if (widget.post.isLikedBy(currentUser)) {
-          widget.post.removeLike(currentUser);
-        } else {
-          widget.post.addLike(currentUser);
-        }
-      });
-    });
+//    await widget.post.toggleLikeFor(currentUserModel).then((value) {
+//      setState(() {
+//        if (widget.post.isLikedBy(currentUserModel)) {
+//          widget.post.removeLike(currentUserModel);
+//        } else {
+//          widget.post.addLike(currentUserModel);
+//        }
+//      });
+//    });
     //send request to server to like post
   }
 
@@ -92,6 +190,14 @@ class _PostWidgetState extends State<PostWidget> {
     });
   }
 
+  void openProfile(BuildContext context, String userId, bool backButtonNeeded) {
+    Navigator.of(context)
+        .push(MaterialPageRoute<bool>(builder: (BuildContext context) {
+      return ProfilePage(userId: userId, backButtonNeeded: backButtonNeeded);
+    }));
+  }
+
+
   void _showAddCommentModal() {
     showModalBottomSheet(
       context: context,
@@ -100,16 +206,16 @@ class _PostWidgetState extends State<PostWidget> {
           padding:
               EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
           child: AddCommentModal(
-            user: currentUser,
+            user: currentUserModel,
             onPost: (String text) {
-              setState(() {
-                widget.post.addComment(Comment(
-                  text: text,
-                  user: currentUser,
-                  commentedAt: DateTime.now().millisecondsSinceEpoch.toString(),
-                  postID: widget.post.postID
-                ));
-              });
+//              setState(() {
+//                widget.post.addComment(Comment(
+//                  text: text,
+//                  user: currentUserModel,
+//                  commentedAt: DateTime.now().millisecondsSinceEpoch.toString(),
+//                  postID: widget.post.postID
+//                ));
+//              });
               Navigator.pop(context);
             },
           ),
@@ -118,8 +224,21 @@ class _PostWidgetState extends State<PostWidget> {
     );
   }
 
+  TextStyle boldStyle = TextStyle(
+    color: Colors.black,
+    fontWeight: FontWeight.bold,
+  );
+
+  Container loadingPlaceHolder = Container(
+    height: 400.0,
+    child: Center(child: CircularProgressIndicator()),
+  );
+
+
+
   @override
   Widget build(BuildContext context) {
+//    print("WIDGET POST LIKES: " + widget.post.likes.values.elementAt(0).keys.elementAt(0).toString());
 //    print("CURRENT USER " + currentUser.toJson().toString());
 //    print("is liked by currentuser " + widget.post.isLikedBy(currentUser).toString());
 //    print("Post JSON: " + widget.post.toJson().toString());
@@ -131,21 +250,56 @@ class _PostWidgetState extends State<PostWidget> {
         // User Details
         Row(
           children: <Widget>[
-            AvatarWidget(user: widget.post.user),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text.rich(
-                    TextSpan(
-                      text: widget.post.user.name,
-                      style: bold,
-                      recognizer: TapGestureRecognizer()
-                      ..onTap = () {
-                      print('Clicked Profile name');
-                      })),
-                if (widget.post.location != null) Text(widget.post.location)
-              ],
-            ),
+            //AvatarWidget(user: widget.post.ownerId),
+            FutureBuilder(
+                future: Firestore.instance
+                    .collection('insta_users')
+                    .document(widget.post.ownerId)
+                    .get(),
+                builder: (context, snapshot) {
+                  if (snapshot.data != null) {
+                    return Row(
+                      children: <Widget>[
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: CircleAvatar(
+                            backgroundImage: CachedNetworkImageProvider(snapshot.data.data['photoUrl']),
+                            backgroundColor: Colors.grey,
+                          ),
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            GestureDetector(
+                              child: Text(snapshot.data.data['username'], style: boldStyle),
+                              onTap: () {
+                                openProfile(context, widget.post.ownerId, true);
+                              },
+                            ),
+                            Text(widget.post.location),
+                          ],
+                        )
+                      ],
+                    );
+                  }
+
+                  // snapshot data is null here
+                  return Container();
+                }),
+//            Column(
+//              crossAxisAlignment: CrossAxisAlignment.start,
+//              children: <Widget>[
+//                Text.rich(
+//                    TextSpan(
+//                      text: widget.post.username,
+//                      style: bold,
+//                      recognizer: TapGestureRecognizer()
+//                      ..onTap = () {
+//                      print('Clicked Profile name');
+//                      })),
+//                if (widget.post.location != null) Text(widget.post.location)
+//              ],
+//            ),
             Spacer(),
             PopupMenuButton<Choice>(
               onSelected: _select,
@@ -166,17 +320,24 @@ class _PostWidgetState extends State<PostWidget> {
             alignment: Alignment.center,
             children: <Widget>[
               CarouselSlider(
-                items: widget.post.imageUrls.map((url) {
-                  return Container(
-                      height: double.infinity,
-                      width: double.infinity,
-                      child: Image.asset(
-                        url,
-                        //height: MediaQuery.of(context).size.height,
-                        width: MediaQuery.of(context).size.width,
-                        fit: BoxFit.fitWidth,
-                  ));
-                }).toList(),
+                items: [
+                  CachedNetworkImage(
+                    imageUrl: widget.post.mediaUrl,
+                    fit: BoxFit.fitWidth,
+                    width: MediaQuery.of(context).size.width,
+                    placeholder: (context, url) => loadingPlaceHolder,
+                    errorWidget: (context, url, error) => Icon(Icons.error),
+                  ),
+//                  Container(
+//                      height: double.infinity,
+//                      width: double.infinity,
+//                      child: Image.asset(
+//                        widget.post.mediaUrl,
+//                        //height: MediaQuery.of(context).size.height,
+//                        width: MediaQuery.of(context).size.width,
+//                        fit: BoxFit.fitWidth,
+//                  )),
+                  ],
                 viewportFraction: 1.0,
                 enableInfiniteScroll: false,
                 aspectRatio: 1,
@@ -195,9 +356,9 @@ class _PostWidgetState extends State<PostWidget> {
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: HeartIconAnimator(
-                isLiked: widget.post.isLikedBy(currentUser),
+                isLiked: liked,//widget.post.isLikedBy(currentUserModel),
                 size: 28.0,
-                onTap: _togglePostIsLiked,
+                onTap: _likePost,
                 triggerAnimationStream: _doubleTapImageEvents.stream,
               ),
             ),
@@ -205,7 +366,14 @@ class _PostWidgetState extends State<PostWidget> {
               padding: EdgeInsets.zero,
               iconSize: 28.0,
               icon: Icon(Icons.chat_bubble_outline),
-              onPressed: _showAddCommentModal,
+              onPressed: () =>  Navigator.of(context)
+                  .push(MaterialPageRoute<bool>(builder: (BuildContext context) {
+                return CommentScreen(
+                  postId: widget.post.postId,
+                  postOwner: widget.post.ownerId,
+                  postMediaUrl: widget.post.mediaUrl,
+                );
+              })),
             ),
             IconButton(
               padding: EdgeInsets.zero,
@@ -214,11 +382,11 @@ class _PostWidgetState extends State<PostWidget> {
               onPressed: () => showSnackbar(context, 'Share'),
             ),
             Spacer(),
-            if (widget.post.imageUrls.length > 1)
-              PhotoCarouselIndicator(
-                photoCount: widget.post.imageUrls.length,
-                activePhotoIndex: _currentImageIndex,
-              ),
+//            if (widget.post.imageUrls.length > 1)
+//              PhotoCarouselIndicator(
+//                photoCount: widget.post.imageUrls.length,
+//                activePhotoIndex: _currentImageIndex,
+//              ),
             Spacer(),
             Spacer(),
             IconButton(
@@ -236,7 +404,7 @@ class _PostWidgetState extends State<PostWidget> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               // Liked by
-              if (widget.post.likedUsers.isNotEmpty)
+              if (likedUsers.length > 0)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8.0),
                   child: Row(
@@ -244,51 +412,86 @@ class _PostWidgetState extends State<PostWidget> {
                       Text('Liked by '),
                       Text.rich(
                           TextSpan(
-                              text: widget.post.likedUsers[0].name,
+                              text: likedUsers[0],
                               style: bold,
                               recognizer: TapGestureRecognizer()
                                 ..onTap = () {
-                                  print('Clicked Profile name');
+                                  openProfile(context, likedUsersId[likedUsers.indexOf(likedUsers[0])], true);
                                 })),
-                      if (widget.post.likedUsers.length > 1) ...[
+                      if (likedUsers.length > 1) ...[
                         Text(' and'),
-                        Text(' ${widget.post.likedUsers.length - 1} others',
+                        Text(' ${likedUsers.length - 1} others',
                             style: bold),
                       ]
                     ],
                   ),
                 ),
-              // Comments
-              if (widget.post.comments.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 4.0),
-                  child: Column(
-                    children: widget.post.comments
-                        .map((Comment c) => CommentWidget(c))
-                        .toList(),
-                  ),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () =>  Navigator.of(context)
+                    .push(MaterialPageRoute<bool>(builder: (BuildContext context) {
+                  return CommentScreen(
+                    postId: widget.post.postId,
+                    postOwner: widget.post.ownerId,
+                    postMediaUrl: widget.post.mediaUrl,
+                  );
+                })),
+                child: Column(
+                  children: [
+                    if (widget.post.description != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 0.0),
+                        child: Column(
+                            children: [
+                              CommentWidget.description(description: widget.post.description, username: widget.post.username, userId: widget.post.ownerId),
+                            ]
+                        ),
+                      ),
+                    // Comments
+                    if (widget.post.comments != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4.0),
+                        child: Column(
+                          children: widget.post.comments.sublist(widget.post.comments.length > 3 ? widget.post.comments.length - 2 : 0)
+                              .map((Comment c) => CommentWidget(c))
+                              .toList(),
+                        ),
+                      ),
+                  ],
                 ),
+              ),
+              Padding(
+                padding: EdgeInsets.only(top: 4.0, bottom: 4.0),
+                child: Text(
+                  "Price: \$${widget.post.price}",
+                  style: TextStyle(color: Colors.black, fontSize: 12.0, fontWeight: FontWeight.w300),
+                ),
+              ),
               // Add a comment...
-              Row(
-                children: <Widget>[
-                  AvatarWidget(
-                    user: currentUser,
-                    padding: EdgeInsets.only(right: 8.0),
-                  ),
-                  GestureDetector(
-                    child: Text(
-                      'Add a comment...',
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                    onTap: _showAddCommentModal,
-                  ),
-                ],
-              ),
+//              Row(
+//                children: <Widget>[
+//                  AvatarWidget(
+//                    user: currentUserModel,
+//                    padding: EdgeInsets.only(right: 8.0),
+//                  ),
+//                  GestureDetector(
+//                    child: Text(
+//                      'Add a comment...',
+//                      style: TextStyle(color: Colors.grey),
+//                    ),
+//                    onTap: _showAddCommentModal,
+//                  ),
+//                ],
+//              ),
               // Posted Timestamp
-              Text(
-                widget.post.timeAgo(),
-                style: TextStyle(color: Colors.grey, fontSize: 11.0),
-              ),
+              Padding(
+                padding: EdgeInsets.only(top: 4.0),
+                child: Text(
+                  widget.post.timeAgo(),
+                  style: TextStyle(color: Colors.grey, fontSize: 11.0),
+                ),
+              )
+
             ],
           ),
         ),
@@ -387,5 +590,33 @@ class _AddCommentModalState extends State<AddCommentModal> {
         )
       ],
     );
+  }
+}
+
+class PostWidgetFromId extends StatelessWidget {
+  final String id;
+
+  const PostWidgetFromId({this.id});
+
+  getImagePost() async {
+    var document =
+    await Firestore.instance.collection('insta_posts').document(id).get();
+    Post post = Post.fromDocument(document);
+    return PostWidget(post,currentUserModel.id);
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder(
+        future: getImagePost(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData)
+            return Container(
+                alignment: FractionalOffset.center,
+                padding: const EdgeInsets.only(top: 10.0),
+                child: CircularProgressIndicator());
+          return snapshot.data;
+        });
   }
 }

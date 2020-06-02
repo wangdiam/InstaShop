@@ -60,7 +60,7 @@ class AvatarWidget extends StatelessWidget {
                   decoration: _greyBoxShadowDecoration,
                   child: CircleAvatar(
                     radius: radius,
-                    backgroundImage: AssetImage(user.imageUrl),
+                    backgroundImage: NetworkImage(user.photoUrl),
                   ),
                 ),
               ),
@@ -87,7 +87,7 @@ class AvatarWidget extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: 4.0),
             child: Text(
-              isCurrentUserStory ? 'Your Story' : user.name,
+              isCurrentUserStory ? 'Your Story' : user.username,
               textScaleFactor: 0.9,
             ),
           ),

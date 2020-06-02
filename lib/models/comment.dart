@@ -1,46 +1,60 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:instashop/models/user.dart';
 import 'package:instashop/utils/data_parse_util.dart';
+import 'package:timeago/timeago.dart' as timeago;
+
 
 class Comment {
-  String text;
-  final String postID;
-  User user;
-  final String commentedAt;
-  bool flag = true;
+  final String username;
+  final String userId;
+  final String avatarUrl;
+  final String comment;
+  var timestamp;
+  bool flag = false;
 
-  Comment({
-    @required this.text,
-    @required this.user,
-    @required this.commentedAt,
-    @required this.postID
-  });
+  Comment(
+      {this.username,
+        this.userId,
+        this.avatarUrl,
+        this.comment,
+        this.timestamp});
 
-  Comment.fromSnapshot(DataSnapshot snapshot) :
-        text = snapshot.value["text"],
-        commentedAt = snapshot.value["commentedAt"],
-        postID = snapshot.value["postID"],
-        user = DataParseUtils().mapToUser(snapshot.value["user"]);
-
+  factory Comment.fromDocument(DocumentSnapshot document) {
+    return Comment(
+      username: document['username'],
+      userId: document['userId'],
+      comment: document["comment"],
+      timestamp: document["timestamp"],
+      avatarUrl: document["avatarUrl"],
+    );
+  }
 
   void isExpanded(bool currentState) {
     flag = !currentState;
   }
 
+  String timeAgo() {
+    final now = DateTime.now();
+    try {
+      return timeago.format(
+          now.subtract(
+              now.difference(
+                  DateTime.fromMillisecondsSinceEpoch(timestamp['_seconds']*1000)
+              )
+          )
+      );
+    } catch (e) {
+      return timeago.format(
+          now.subtract(
+              now.difference(
+                  timestamp.runtimeType == DateTime ? timestamp : timestamp.toDate()
+              )
+          )
+      );
+    }
 
-  Map toJson() {
-    return {
-      "user": this.user.toJson(),
-      "text": this.text,
-      "commentedAt": this.commentedAt,
-      "postID": this.postID
-    };
   }
-
-
-
-
-
 
 }

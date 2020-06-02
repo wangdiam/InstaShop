@@ -1,22 +1,37 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class User {
-  String name;
-  String userID;
-  String imageUrl;
+  String username;
+  String id;
+  String photoUrl;
+  String email;
+  String displayName;
+  String bio;
+  Map followers;
+  Map following;
 
   User({
-    @required this.name,
-    @required this.userID,
-    this.imageUrl,
+    this.username,
+    this.id,
+    this.photoUrl,
+    this.email,
+    this.displayName,
+    this.followers,
+    this.following,
+    this.bio
   });
 
-
-  Map toJson() {
-    return {
-      "name": name,
-      "userID": userID,
-      "imageUrl": imageUrl
-    };
+  factory User.fromDocument(DocumentSnapshot document) {
+    return User(
+      email: document['email'],
+      username: document['username'],
+      photoUrl: document['photoUrl'],
+      id: document.documentID,
+      displayName: document['displayName'],
+      bio: document['bio'],
+      followers: document['followers'],
+      following: document['following'],
+    );
   }
 }

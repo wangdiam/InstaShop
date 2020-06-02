@@ -4,6 +4,11 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:instashop/models/post.dart';
+import 'package:instashop/pages/activity_feed_page.dart';
+import 'package:instashop/pages/create_listing_page.dart';
+import 'package:instashop/pages/login_signup_page.dart';
+import 'package:instashop/pages/profile_page.dart';
+import 'package:instashop/pages/search_page.dart';
 import 'package:outline_material_icons/outline_material_icons.dart';
 import 'package:instashop/pages/home_feed_page.dart';
 import 'package:instashop/utils/ui_utils.dart';
@@ -30,17 +35,16 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blueGrey,
         primaryColor: Colors.black,
       ),
-      home: RootPage(auth: Auth())//
+      home: RootPage()//
       // MainScaffold(),
     );
   }
 }
 
 class MainScaffold extends StatefulWidget {
-  MainScaffold({Key key, this.auth, this.userId, this.logoutCallback})
+  MainScaffold({Key key, this.userId, this.logoutCallback})
       : super(key: key);
 
-  final BaseAuth auth;
   final VoidCallback logoutCallback;
   final String userId;
 
@@ -53,11 +57,7 @@ class _MainScaffoldState extends State<MainScaffold> with AutomaticKeepAliveClie
   int _tabSelectedIndex = 0;
   final FirebaseDatabase _database = FirebaseDatabase.instance;
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
-  StreamSubscription<Event> _onPostAddedSubscription;
 
-  Query _postQuery;
-  Query _userInfoQuery;
-  List<Post> _postList;
  
 
   final PageStorageBucket bucket = PageStorageBucket();
@@ -65,40 +65,22 @@ class _MainScaffoldState extends State<MainScaffold> with AutomaticKeepAliveClie
   // Save the home page scrolling offset,
   // used when navigating back to the home page from another tab.
   double _lastFeedScrollOffset = 0;
-  ScrollController _scrollController;
+  ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-
-    _postList = List();
-    _postQuery = _database
-        .reference()
-        .child("posts");
-    //_onPostAddedSubscription = _postQuery.onChildAdded.listen(onPostAdded);
-    _userInfoQuery = _database.reference().child("users");
-    //print("MAIN: " + currentUser.toJson().toString());
   }
 
   @override
   void dispose() {
-    _disposeScrollController();
+    //_disposeScrollController();
     super.dispose();
-  }
-
-
-
-  onPostAdded(Event event) {
-    //print("post added!");
-    Post post = Post.fromSnapshot(event.snapshot);
-    setState(() {
-      _postList.add(post);
-    });
   }
 
   signOut() async {
     try {
-      await widget.auth.signOut();
+      await baseAuth.signOut();
       widget.logoutCallback();
     } catch (e) {
       print(e);
@@ -126,21 +108,12 @@ class _MainScaffoldState extends State<MainScaffold> with AutomaticKeepAliveClie
   }
 
   void _onTabTapped(BuildContext context, int index) {
-    if (index == _kAddPhotoTabIndex) {
-      //print("BEFORE post: " + currentUser.toJson().toString());
-      Post post = Post(
-          user: currentUser,
-          imageUrls: [
-            'assets/images/balenciaga_kicks.jpg',
-            'assets/images/yeezys.jpg'
-          ],
-          likedUsers: [],
-          comments: [],
-          location: 'Singapore',
-          postedAt: DateTime.now().millisecondsSinceEpoch.toString()
-      );
-      _database.reference().child("posts").push().set(post.toJson());
-    } else if (index == _tabSelectedIndex) {
+//    if (index == _kAddPhotoTabIndex) {
+//      Navigator.of(context)
+//          .push(MaterialPageRoute<bool>(builder: (BuildContext context) {
+//        return Uploader();}));
+//    } else
+    if (index == _tabSelectedIndex && index == 0) {
       _scrollToTop();
     } else {
       setState(() => _tabSelectedIndex = index);
@@ -171,12 +144,20 @@ class _MainScaffoldState extends State<MainScaffold> with AutomaticKeepAliveClie
   }
 
   Widget _buildBody(String userID) {
+    print("tabselectedindex" + _tabSelectedIndex.toString());
     switch (_tabSelectedIndex) {
       case 0:
         _scrollController =
             ScrollController(initialScrollOffset: _lastFeedScrollOffset);
-        //print("REBUILDING BODY");
-        return HomeFeedPage(scrollController: _scrollController, posts: _postList, userID: userID);
+        return HomeFeedPage(scrollController: _scrollController, userID: currentUserModel.id);
+      case 1:
+        return SearchPage();
+      case 2:
+        return Uploader();
+      case 3:
+        return ActivityFeedPage();
+      case 4:
+        return ProfilePage(userId: currentUserModel.id, backButtonNeeded: false);
       default:
         const tabIndexToNameMap = {
           0: 'Home',
@@ -185,7 +166,7 @@ class _MainScaffoldState extends State<MainScaffold> with AutomaticKeepAliveClie
           3: 'Notifications',
           4: 'Profile',
         };
-        _disposeScrollController();
+        //_disposeScrollController();
         return _buildPlaceHolderTab(tabIndexToNameMap[_tabSelectedIndex]);
     }
   }
@@ -226,42 +207,8 @@ class _MainScaffoldState extends State<MainScaffold> with AutomaticKeepAliveClie
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        elevation: 1.0,
-        backgroundColor: Colors.grey[50],
-        title: Row(
-          children: <Widget>[
-            Builder(builder: (BuildContext context) {
-              return GestureDetector(
-                child: Icon(OMIcons.cameraAlt, color: Colors.black, size: 32.0),
-                onTap: () => showSnackbar(context, 'Add Photo'),
-              );
-            }),
-            SizedBox(width: 12.0),
-            GestureDetector(
-              child: Text(
-                'InstaShop',
-                style: TextStyle(
-                    fontFamily: 'Billabong',
-                    color: Colors.black,
-                    fontSize: 32.0),
-              ),
-              onTap: _scrollToTop,
-            ),
-          ],
-        ),
-        actions: <Widget>[
-          Builder(builder: (BuildContext context) {
-            return IconButton(
-              color: Colors.black,
-              icon: Icon(OMIcons.nearMe),
-              onPressed: () => showSnackbar(context, 'My Messages'),
-            );
-          }),
-        ],
-      ),
       body: PageStorage(
-        child: _buildBody(widget.userId),
+        child: _buildBody(currentUserModel.id),
         bucket: bucket,
       ),
       bottomNavigationBar: _buildBottomNavigation(),

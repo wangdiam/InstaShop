@@ -1,28 +1,34 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:instashop/models/comment.dart';
+import 'package:instashop/pages/profile_page.dart';
 import 'package:instashop/utils/ui_utils.dart';
 
 
 class CommentWidget extends StatefulWidget {
-  final Comment comment;
+  Comment comment;
   String firstHalf;
   String secondHalf;
+  String username;
+  String description;
+  String userId;
 
 
   CommentWidget(this.comment);
+  CommentWidget.description({
+    this.username,this.description, this.userId});
 
   @override
   _CommentWidgetState createState() => _CommentWidgetState();
 }
 
 class _CommentWidgetState extends State<CommentWidget> {
-  bool flag;
+  bool flag = false;
 
   @override
   void initState() {
     super.initState();
-    flag = widget.comment.flag;
+    if (widget.comment != null) flag = widget.comment.flag;
     //print("COMMENT WIDGET TEXT: " + this.widget.comment.toJson().toString());
   }
 
@@ -31,6 +37,12 @@ class _CommentWidgetState extends State<CommentWidget> {
     super.dispose();
   }
 
+  void openProfile(BuildContext context, String userId, bool backButtonNeeded) {
+    Navigator.of(context)
+        .push(MaterialPageRoute<bool>(builder: (BuildContext context) {
+      return ProfilePage(userId: userId, backButtonNeeded: backButtonNeeded);
+    }));
+  }
 
   void _toggleCommentIsExpanded() {
     if (flag) flag = false;
@@ -38,44 +50,83 @@ class _CommentWidgetState extends State<CommentWidget> {
   }
 
   Container _buildRichText() {
-    var currentTextData = StringBuffer();
-    var textSpans = <TextSpan>[
-      TextSpan(
-          text: '${widget.comment.user.name} ',
-          style: bold,
-          recognizer: TapGestureRecognizer()
-            ..onTap = () {
-              print('Clicked Profile name');
-            }),
-    ];
-    this.widget.comment.text.split(' ').forEach((word) {
-      if (word.startsWith('#') && word.length > 1) {
-        if (currentTextData.isNotEmpty) {
-          textSpans.add(TextSpan(text: currentTextData.toString()));
-          currentTextData.clear();
+    var textSpans;
+    if (widget.comment != null) {
+      var currentTextData = StringBuffer();
+      textSpans = <TextSpan>[
+        TextSpan(
+            text: '${widget.comment.username} ',
+            style: bold,
+            recognizer: TapGestureRecognizer()
+              ..onTap = () {
+                openProfile(context, widget.comment.userId, true);
+              }),
+      ];
+      this.widget.comment.comment.split(' ').forEach((word) {
+        if (word.startsWith('#') && word.length > 1) {
+          if (currentTextData.isNotEmpty) {
+            textSpans.add(TextSpan(text: currentTextData.toString()));
+            currentTextData.clear();
+          }
+          textSpans.add(TextSpan(text: '$word ', style: link));
+        } else {
+          currentTextData.write('$word ');
         }
-        textSpans.add(TextSpan(text: '$word ', style: link));
-      } else {
-        currentTextData.write('$word ');
-      }
-    });
-    if (currentTextData.isNotEmpty) {
-      if ((currentTextData.length + widget.comment.user.name.length) > 45) {
-        widget.firstHalf = currentTextData.toString().substring(0, 40-widget.comment.user.name.length);
-        widget.secondHalf = currentTextData.toString().substring(40-widget.comment.user.name.length, currentTextData.toString().length);
-        textSpans.add(TextSpan(text: (flag ? widget.firstHalf + "..." : widget.firstHalf + widget.secondHalf)));
-      } else {
-        widget.firstHalf = currentTextData.toString();
-        widget.secondHalf = "";
-        textSpans.add(TextSpan(text: widget.firstHalf));
-      }
+      });
+      if (currentTextData.isNotEmpty) {
+        if ((currentTextData.length + widget.comment.username.length) > 45) {
+          widget.firstHalf = currentTextData.toString().substring(0, 40-widget.comment.username.length);
+          widget.secondHalf = currentTextData.toString().substring(40-widget.comment.username.length, currentTextData.toString().length);
+          textSpans.add(TextSpan(text: (flag ? widget.firstHalf + "..." : widget.firstHalf + widget.secondHalf)));
+        } else {
+          widget.firstHalf = currentTextData.toString();
+          widget.secondHalf = "";
+          textSpans.add(TextSpan(text: widget.firstHalf));
+        }
 
-      currentTextData.clear();
+        currentTextData.clear();
+      }
+    } else {
+      var currentTextData = StringBuffer();
+      textSpans = <TextSpan>[
+        TextSpan(
+            text: '${widget.username} ',
+            style: bold,
+            recognizer: TapGestureRecognizer()
+              ..onTap = () {
+                openProfile(context, widget.userId, true);
+              }),
+      ];
+      this.widget.description.split(' ').forEach((word) {
+        if (word.startsWith('#') && word.length > 1) {
+          if (currentTextData.isNotEmpty) {
+            textSpans.add(TextSpan(text: currentTextData.toString()));
+            currentTextData.clear();
+          }
+          textSpans.add(TextSpan(text: '$word ', style: link));
+        } else {
+          currentTextData.write('$word ');
+        }
+      });
+      if (currentTextData.isNotEmpty) {
+        if ((currentTextData.length + widget.username.length) > 45) {
+          widget.firstHalf = currentTextData.toString().substring(0, 40-widget.username.length);
+          widget.secondHalf = currentTextData.toString().substring(40-widget.username.length, currentTextData.toString().length);
+          textSpans.add(TextSpan(text: (flag ? widget.firstHalf + "..." : widget.firstHalf + widget.secondHalf)));
+        } else {
+          widget.firstHalf = currentTextData.toString();
+          widget.secondHalf = "";
+          textSpans.add(TextSpan(text: widget.firstHalf));
+        }
+
+        currentTextData.clear();
+      }
     }
+
     //return Text.rich(TextSpan(children: textSpans));
     return new Container(
       padding: new EdgeInsets.symmetric(horizontal: 0.0),
-      child: widget.secondHalf.isEmpty
+      child: widget.secondHalf != null
           ? new Text.rich(TextSpan(children: textSpans))
           : new Row(
         children: <Widget>[
@@ -108,6 +159,7 @@ class _CommentWidgetState extends State<CommentWidget> {
       ),
     );
   }
+
 
   @override
   Widget build(BuildContext context) {
