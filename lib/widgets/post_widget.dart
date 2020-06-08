@@ -8,6 +8,7 @@ import 'package:instashop/models/comment.dart';
 import 'package:instashop/models/post.dart';
 import 'package:instashop/models/user.dart';
 import 'package:instashop/pages/comment_screen_page.dart';
+import 'package:instashop/pages/messaging/chat_page.dart';
 import 'package:instashop/pages/profile_page.dart';
 import 'package:instashop/pages/root_page.dart';
 import 'package:instashop/utils/heart_icon_animator.dart';
@@ -220,6 +221,8 @@ class _PostWidgetState extends State<PostWidget> {
 
   @override
   Widget build(BuildContext context) {
+    String postOwnerPhotoUrl;
+    String postOwnerName;
     return Column(
       children: <Widget>[
         // User Details
@@ -230,6 +233,8 @@ class _PostWidgetState extends State<PostWidget> {
                 future: _fetchData(),
                 builder: (context, snapshot) {
                   if (snapshot.data != null) {
+                    postOwnerPhotoUrl = snapshot.data.data['photoUrl'];
+                    postOwnerName = snapshot.data.data['username'];
                     return Row(
                       children: <Widget>[
                         Padding(
@@ -347,12 +352,15 @@ class _PostWidgetState extends State<PostWidget> {
                 );
               })),
             ),
-            IconButton(
+            (widget.post.ownerId != currentUserModel.id)? IconButton(
               padding: EdgeInsets.zero,
               iconSize: 28.0,
               icon: Icon(OMIcons.nearMe),
-              onPressed: () => showSnackbar(context, 'Share'),
-            ),
+              onPressed: () => Navigator.of(context)
+                  .push(MaterialPageRoute<bool>(builder: (BuildContext context) {
+                return Chat(peerId: widget.post.ownerId, peerAvatar: postOwnerPhotoUrl, peerUserName: postOwnerName);
+              })),
+            ) : SizedBox(),
             Spacer(),
 //            if (widget.post.imageUrls.length > 1)
 //              PhotoCarouselIndicator(
@@ -436,7 +444,7 @@ class _PostWidgetState extends State<PostWidget> {
                 padding: EdgeInsets.only(top: 4.0, bottom: 4.0),
                 child: Text(
                   "Price: \$${widget.post.price}",
-                  style: TextStyle(color: Colors.black, fontSize: 12.0, fontWeight: FontWeight.w300),
+                  style: TextStyle(color: Colors.black, fontSize: 16.0, fontWeight: FontWeight.w900),
                 ),
               ),
               // Add a comment...

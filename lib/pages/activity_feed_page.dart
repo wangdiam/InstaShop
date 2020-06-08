@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:instashop/pages/messaging/messages_page.dart';
 import 'package:instashop/pages/root_page.dart';
 import 'package:instashop/widgets/post_widget.dart';
+import 'package:outline_material_icons/outline_material_icons.dart';
 import 'profile_page.dart'; // to open the profile page when username clicked
 import 'package:timeago/timeago.dart' as timeago;
 

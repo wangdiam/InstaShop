@@ -4,11 +4,14 @@ import 'package:instashop/models/comment.dart';
 import 'package:instashop/models/post.dart';
 import 'package:instashop/models/user.dart';
 import 'package:instashop/pages/edit_profile_page.dart';
+import 'package:instashop/pages/messaging/messages_page.dart';
 
 import 'dart:async';
 
 import 'package:instashop/pages/root_page.dart';
 import 'package:instashop/widgets/post_widget.dart';
+import 'package:outline_material_icons/outline_material_icons.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 List<PostWidget> postWidgets = [];
 
@@ -37,6 +40,21 @@ class _ProfilePage extends State<ProfilePage>
   void initState() {
     super.initState();
     postWidgets = [];
+    getPostCount();
+
+  }
+
+
+
+  getPostCount() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    postCount = prefs.getInt("postCount${widget.userId}") != null ? prefs.getInt("postCount${widget.userId}") : 0;
+    print(postCount);
+  }
+
+  updatePostCountPrefs() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setInt("postCount${widget.userId}", postCount);
   }
 
   editProfile() {
@@ -291,6 +309,7 @@ class _ProfilePage extends State<ProfilePage>
         }
         setState(() {
           postCount = snap.documents.length;
+          updatePostCountPrefs();
         });
         return widgets.reversed.toList();
       }
@@ -356,6 +375,18 @@ class _ProfilePage extends State<ProfilePage>
                   color: Colors.black,
                   onPressed: () => Navigator.pop(context,false),
                 ) : null,
+                actions: <Widget>[
+                  Builder(builder: (BuildContext context) {
+                    return IconButton(
+                      color: Colors.black,
+                      icon: Icon(OMIcons.email),
+                      onPressed: () => Navigator.of(context)
+                          .push(MaterialPageRoute<bool>(builder: (BuildContext context) {
+                        return MainChatScreen(currentUserId: currentUserModel.id,);
+                      })),
+                    );
+                  }),
+                ],
                 title: Text(
                   user.username,
                   style: const TextStyle(color: Colors.black),

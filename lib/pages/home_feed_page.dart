@@ -66,7 +66,7 @@ class _HomeFeedPageState extends State<HomeFeedPage> {
       iposts.add(post);
     }
     setState(() {
-      iposts.sort((a,b) => a.timestamp.compareTo(b.timestamp));
+      iposts.sort((a,b) => a.timestamp['_seconds'].compareTo(b.timestamp['_seconds']));
       posts = iposts;
     });
   }
