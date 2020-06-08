@@ -209,46 +209,6 @@ class _Uploader extends State<Uploader> {
     }
   }
 
-  _selectImage(BuildContext parentContext) async {
-    return showDialog<Null>(
-      context: parentContext,
-      barrierDismissible: false, // user must tap button!
-
-      builder: (BuildContext context) {
-        return SimpleDialog(
-          title: const Text('Create a Post'),
-          children: <Widget>[
-            SimpleDialogOption(
-                child: const Text('Take a photo'),
-                onPressed: () async {
-                  Navigator.pop(context);
-                  File imageFile =
-                      await ImagePicker.pickImage(source: ImageSource.camera, maxWidth: 1920, maxHeight: 1200, imageQuality: 80);
-                  setState(() {
-                    file = imageFile;
-                  });
-                }),
-            SimpleDialogOption(
-                child: const Text('Choose from Gallery'),
-                onPressed: () async {
-                  Navigator.of(context).pop();
-                  File imageFile =
-                      await ImagePicker.pickImage(source: ImageSource.gallery, maxWidth: 1920, maxHeight: 1200, imageQuality: 80);
-                  setState(() {
-                    file = imageFile;
-                  });
-                }),
-            SimpleDialogOption(
-              child: const Text("Cancel"),
-              onPressed: () {
-                Navigator.pop(context);
-              },
-            )
-          ],
-        );
-      },
-    );
-  }
 
   void clearImage() {
     setState(() {

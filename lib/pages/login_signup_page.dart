@@ -2,15 +2,13 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:instashop/models/user.dart';
 import 'package:instashop/pages/create_account.dart';
 import 'package:instashop/pages/root_page.dart';
-import 'package:instashop/services/authentication.dart';
-import 'package:instashop/main.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 final auth = FirebaseAuth.instance;
 final googleSignIn = GoogleSignIn();
@@ -29,7 +27,6 @@ class LoginSignupPage extends StatefulWidget {
 
 class _LoginSignupPageState extends State<LoginSignupPage> {
   final _formKey = new GlobalKey<FormState>();
-  int _page = 0;
   bool triedSilentLogin = false;
   bool setupNotifications = false;
 
@@ -67,6 +64,8 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
         if (_isLoginForm) {
           userId = await baseAuth.signIn(_email, _password);
           print('Signed in: $userId');
+          SharedPreferences prefs = await SharedPreferences.getInstance();
+          prefs.setString('userId', userId);
           await ref.document(userId).get()
           .then((value) {
             setState(() {
@@ -92,7 +91,6 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
         setState(() {
           _isLoading = false;
         });
-        print("userId length: " + userId.length.toString() + userId.toString());
         if (userId.length > 0 && userId != null && _isLoginForm) {
           widget.loginCallback();
         }
@@ -179,6 +177,7 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
+
       await auth.signInWithCredential(credential);
     }
   }
@@ -264,10 +263,12 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
     }
     print("trying to retrieve currentUserModel");
     await ref.document(user.id).get().then((value) {
-      setState(() {
+      setState(() async {
         print(value.toString());
         currentUserModel = User.fromDocument(value);
         print("Retrieved currentUserModel");
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        prefs.setString("userId", user.id);
         widget.loginCallback();
       });
       return null;

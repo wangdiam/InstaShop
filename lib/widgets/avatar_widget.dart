@@ -18,18 +18,18 @@ class AvatarWidget extends StatelessWidget {
     this.isCurrentUserStory = false,
   });
 
-  static const _gradientBorderDecoration = BoxDecoration(
-    shape: BoxShape.circle,
-    // https://brandpalettes.com/instagram-color-codes/
-    gradient: SweepGradient(
-      colors: [
-        Color(0xFF833AB4), // Purple
-        Color(0xFFF77737), // Orange
-        Color(0xFFE1306C), // Red-pink
-        Color(0xFFC13584), // Red-purple
-      ],
-    ),
-  );
+//  static const _gradientBorderDecoration = BoxDecoration(
+//    shape: BoxShape.circle,
+//    // https://brandpalettes.com/instagram-color-codes/
+//    gradient: SweepGradient(
+//      colors: [
+//        Color(0xFF833AB4), // Purple
+//        Color(0xFFF77737), // Orange
+//        Color(0xFFE1306C), // Red-pink
+//        Color(0xFFC13584), // Red-purple
+//      ],
+//    ),
+//  );
   static const _whiteBorderDecoration = BoxDecoration(
     shape: BoxShape.circle,
     border: Border.fromBorderSide(BorderSide(color: Colors.white, width: 3.0)),

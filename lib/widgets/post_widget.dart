@@ -1,8 +1,7 @@
 import 'dart:async';
-
+import 'package:async/async.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:instashop/models/comment.dart';
@@ -13,11 +12,14 @@ import 'package:instashop/pages/profile_page.dart';
 import 'package:instashop/pages/root_page.dart';
 import 'package:instashop/utils/heart_icon_animator.dart';
 import 'package:instashop/utils/heart_overlay_animator.dart';
+import 'package:instashop/utils/styles.dart';
 import 'package:outline_material_icons/outline_material_icons.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:instashop/widgets/avatar_widget.dart';
 import 'package:instashop/widgets/comment_widget.dart';
 import 'package:instashop/utils/ui_utils.dart';
+
+AsyncMemoizer memoizer = AsyncMemoizer();
 
 class Choice {
   const Choice({this.title, this.icon});
@@ -32,9 +34,8 @@ const List<Choice> choices = const <Choice>[
 
 class PostWidget extends StatefulWidget {
   final Post post;
-  final String userID;
 
-  PostWidget(this.post, this.userID);
+  PostWidget(this.post);
 
   @override
   _PostWidgetState createState() => _PostWidgetState();
@@ -58,27 +59,23 @@ class _PostWidgetState extends State<PostWidget> {
   void initState() {
     super.initState();
     liked = widget.post.likes[currentUserModel.id] != null && widget.post.likes[currentUserModel.id][currentUserModel.username];
-    print("LIKED: " + liked.toString());
-    print(widget.post.likes[currentUserModel.id]);
-    print(widget.post.postId + " " + liked.toString());
-    print(widget.post.likes.toString());
     if (widget.post.likes != null) {
       widget.post.likes.forEach((key,value) {
         value.forEach((k,v) {
-          print(k.toString());
-          print(v.toString());
           if (v.toString() == true.toString()) {
             likedUsers.add(k);
             likedUsersId.add(key);
           }
         });
       });
-      print("LIKED USERS: " + likedUsers.toString());
-      print("LIKED USERS KEY: " + likedUsersId.toString());
 
     }
+    if (widget.post.saved != null && widget.post.saved != false) {
+      setState(() {
+        _isSaved = true;
+      });
+    }
 
-    print(likedUsers.length);
     _currentImageIndex = 0;
   }
   @override
@@ -91,17 +88,15 @@ class _PostWidgetState extends State<PostWidget> {
   void _likePost() {
     var userId = currentUserModel.id;
     var userName = currentUserModel.username;
-    print(liked);
     if (liked) {
       print('removing like');
       reference.document(widget.post.postId).updateData({
-        'likes.${userId}.${userName}': false,
+        'likes.$userId.$userName': false,
         //firestore plugin doesnt support deleting, so it must be nulled / falsed
       });
 
       setState(() {
         likedUsers.remove(currentUserModel.username);
-        print("REMOVED LIKE USER: " + likedUsers.toString());
         likeCount = likeCount - 1;
         liked = false;
         widget.post.likes[userId] = {userName: false};
@@ -113,14 +108,13 @@ class _PostWidgetState extends State<PostWidget> {
     else if (!liked) {
       print('liking');
       reference.document(widget.post.postId).updateData({
-        'likes.${userId}.${userName}': true
+        'likes.$userId.$userName': true
       });
 
       addActivityFeedItem();
 
       setState(() {
         likedUsers.add(currentUserModel.username);
-        print("ADDED LIKE USER: " + likedUsers.toString());
         likeCount = likeCount + 1;
         liked = true;
         widget.post.likes[userId] = {userName: true};
@@ -165,21 +159,34 @@ class _PostWidgetState extends State<PostWidget> {
     _likePost();
   }
 
-  void _toggleIsSaved() {
-    setState(() => _isSaved = !_isSaved);
+  void _toggleIsSavedToCart() {
+    setState(() {
+      _isSaved = !_isSaved;
+      widget.post.saved = _isSaved;
+    });
+    if (_isSaved) {
+      addItemToCart(widget.post, currentUserModel.id);
+      showSnackbar(context, "Item has been added to cart!");
+    } else {
+      removeItemFromCart(widget.post, currentUserModel.id);
+      showSnackbar(context, "Item has been removed from cart!");
+    }
   }
 
-  void _togglePostIsLiked() async {
-//    await widget.post.toggleLikeFor(currentUserModel).then((value) {
-//      setState(() {
-//        if (widget.post.isLikedBy(currentUserModel)) {
-//          widget.post.removeLike(currentUserModel);
-//        } else {
-//          widget.post.addLike(currentUserModel);
-//        }
-//      });
-//    });
-    //send request to server to like post
+  void addItemToCart(Post post, String userID) async {
+    Firestore.instance.collection('insta_items')
+        .document(currentUserModel.id).collection("items").document(post.ownerId).setData({
+      "${post.postId}": true
+    },
+    merge: true);
+  }
+
+  void removeItemFromCart(Post post, String userID) async {
+    Firestore.instance.collection('insta_items')
+        .document(currentUserModel.id).collection("items").document(post.ownerId).setData({
+      "${post.postId}": false
+    },
+    merge: true);
   }
 
   void _select(Choice choice) {
@@ -198,53 +205,21 @@ class _PostWidgetState extends State<PostWidget> {
   }
 
 
-  void _showAddCommentModal() {
-    showModalBottomSheet(
-      context: context,
-      builder: (BuildContext context) {
-        return Padding(
-          padding:
-              EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-          child: AddCommentModal(
-            user: currentUserModel,
-            onPost: (String text) {
-//              setState(() {
-//                widget.post.addComment(Comment(
-//                  text: text,
-//                  user: currentUserModel,
-//                  commentedAt: DateTime.now().millisecondsSinceEpoch.toString(),
-//                  postID: widget.post.postID
-//                ));
-//              });
-              Navigator.pop(context);
-            },
-          ),
-        );
-      },
-    );
-  }
-
-  TextStyle boldStyle = TextStyle(
-    color: Colors.black,
-    fontWeight: FontWeight.bold,
-  );
-
   Container loadingPlaceHolder = Container(
     height: 400.0,
     child: Center(child: CircularProgressIndicator()),
   );
 
-
+  _fetchData() async {
+      var docs = await Firestore.instance
+          .collection('insta_users')
+          .document(widget.post.ownerId)
+          .get();
+      return docs;
+  }
 
   @override
   Widget build(BuildContext context) {
-//    print("WIDGET POST LIKES: " + widget.post.likes.values.elementAt(0).keys.elementAt(0).toString());
-//    print("CURRENT USER " + currentUser.toJson().toString());
-//    print("is liked by currentuser " + widget.post.isLikedBy(currentUser).toString());
-//    print("Post JSON: " + widget.post.toJson().toString());
-//    print("Post username " + widget.post.user.name);
-//    print("Post likelist: " + widget.post.likedUsers.toString());
-//    print("Post comments: " + widget.post.comments.toString());
     return Column(
       children: <Widget>[
         // User Details
@@ -252,10 +227,7 @@ class _PostWidgetState extends State<PostWidget> {
           children: <Widget>[
             //AvatarWidget(user: widget.post.ownerId),
             FutureBuilder(
-                future: Firestore.instance
-                    .collection('insta_users')
-                    .document(widget.post.ownerId)
-                    .get(),
+                future: _fetchData(),
                 builder: (context, snapshot) {
                   if (snapshot.data != null) {
                     return Row(
@@ -389,13 +361,13 @@ class _PostWidgetState extends State<PostWidget> {
 //              ),
             Spacer(),
             Spacer(),
-            IconButton(
+            (widget.post.ownerId != currentUserModel.id) ? IconButton(
               padding: EdgeInsets.zero,
               iconSize: 28.0,
               icon:
-                  _isSaved ? Icon(Icons.bookmark) : Icon(Icons.bookmark_border),
-              onPressed: _toggleIsSaved,
-            )
+                  _isSaved ? Icon(OMIcons.removeShoppingCart) : Icon(OMIcons.addShoppingCart),
+              onPressed: _toggleIsSavedToCart,
+            ) : SizedBox()
           ],
         ),
         Padding(
@@ -500,6 +472,10 @@ class _PostWidgetState extends State<PostWidget> {
   }
 
 
+
+  void _goToShoppingCart() {
+
+  }
 }
 
 class PhotoCarouselIndicator extends StatelessWidget {
@@ -569,7 +545,7 @@ class _AddCommentModalState extends State<AddCommentModal> {
   Widget build(BuildContext context) {
     return Row(
       children: <Widget>[
-        AvatarWidget(user: widget.user),
+        //AvatarWidget(user: widget.user),
         Expanded(
           child: TextField(
             controller: _textController,
@@ -602,7 +578,7 @@ class PostWidgetFromId extends StatelessWidget {
     var document =
     await Firestore.instance.collection('insta_posts').document(id).get();
     Post post = Post.fromDocument(document);
-    return PostWidget(post,currentUserModel.id);
+    return PostWidget(post);
   }
 
 

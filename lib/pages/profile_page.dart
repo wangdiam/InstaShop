@@ -7,7 +7,6 @@ import 'package:instashop/pages/edit_profile_page.dart';
 
 import 'dart:async';
 
-import 'package:instashop/pages/login_signup_page.dart';
 import 'package:instashop/pages/root_page.dart';
 import 'package:instashop/widgets/post_widget.dart';
 
@@ -288,7 +287,7 @@ class _ProfilePage extends State<ProfilePage>
           Post post = Post.fromDocument(doc);
           List<Comment> comments = await retrieveComments(post.postId);
           post.comments = comments;
-          widgets.add(PostWidget(post,profileId));
+          widgets.add(PostWidget(post));
         }
         setState(() {
           postCount = snap.documents.length;

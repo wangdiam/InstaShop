@@ -1,31 +1,27 @@
-import 'dart:async';
-
-import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:instashop/models/post.dart';
+import 'package:instashop/models/user.dart';
 import 'package:instashop/pages/activity_feed_page.dart';
 import 'package:instashop/pages/create_listing_page.dart';
-import 'package:instashop/pages/login_signup_page.dart';
 import 'package:instashop/pages/profile_page.dart';
 import 'package:instashop/pages/search_page.dart';
 import 'package:outline_material_icons/outline_material_icons.dart';
 import 'package:instashop/pages/home_feed_page.dart';
-import 'package:instashop/utils/ui_utils.dart';
-import 'package:instashop/services/authentication.dart';
 import 'package:instashop/pages/root_page.dart';
-import 'package:instashop/models/user.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp])
       .then((_) {
-    runApp(new MyApp());
+    runApp(new InstaShop());
   });
 }
 
-class MyApp extends StatelessWidget {
+class InstaShop extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -52,10 +48,8 @@ class MainScaffold extends StatefulWidget {
   _MainScaffoldState createState() => _MainScaffoldState();
 }
 
-class _MainScaffoldState extends State<MainScaffold> with AutomaticKeepAliveClientMixin<MainScaffold>{
-  static const _kAddPhotoTabIndex = 2;
+class _MainScaffoldState extends State<MainScaffold> {
   int _tabSelectedIndex = 0;
-  final FirebaseDatabase _database = FirebaseDatabase.instance;
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
  
@@ -98,21 +92,8 @@ class _MainScaffoldState extends State<MainScaffold> with AutomaticKeepAliveClie
     );
   }
 
-  // Call this when changing the body that doesn't use a ScrollController.
-  void _disposeScrollController() {
-    if (_scrollController != null) {
-      _lastFeedScrollOffset = _scrollController.offset;
-      _scrollController.dispose();
-      _scrollController = null;
-    }
-  }
 
   void _onTabTapped(BuildContext context, int index) {
-//    if (index == _kAddPhotoTabIndex) {
-//      Navigator.of(context)
-//          .push(MaterialPageRoute<bool>(builder: (BuildContext context) {
-//        return Uploader();}));
-//    } else
     if (index == _tabSelectedIndex && index == 0) {
       _scrollToTop();
     } else {
@@ -144,7 +125,6 @@ class _MainScaffoldState extends State<MainScaffold> with AutomaticKeepAliveClie
   }
 
   Widget _buildBody(String userID) {
-    print("tabselectedindex" + _tabSelectedIndex.toString());
     switch (_tabSelectedIndex) {
       case 0:
         _scrollController =
@@ -214,7 +194,5 @@ class _MainScaffoldState extends State<MainScaffold> with AutomaticKeepAliveClie
       bottomNavigationBar: _buildBottomNavigation(),
     );
   }
-
-  @override
-  bool get wantKeepAlive => true;
 }
+

@@ -77,7 +77,6 @@ class _EditProfilePage extends State<EditProfilePage> {
             .document(currentUserModel.id)
             .get(),
         builder: (context, snapshot) {
-          print("FINISHED FETCHING");
           if (!snapshot.hasData)
             return Container(
                 alignment: FractionalOffset.center,

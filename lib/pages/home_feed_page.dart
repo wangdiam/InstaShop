@@ -2,14 +2,11 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:instashop/models/comment.dart';
-import 'package:instashop/models/like.dart';
 import 'package:instashop/models/post.dart';
-import 'package:instashop/pages/login_signup_page.dart';
 import 'package:instashop/pages/root_page.dart';
-import 'package:instashop/utils/data_parse_util.dart';
+import 'package:instashop/pages/shopping_cart_page.dart';
 import 'package:instashop/utils/ui_utils.dart';
 import 'package:instashop/widgets/post_widget.dart';
 import 'package:outline_material_icons/outline_material_icons.dart';
@@ -29,10 +26,9 @@ class HomeFeedPage extends StatefulWidget {
   _HomeFeedPageState createState() => _HomeFeedPageState();
 }
 
-class _HomeFeedPageState extends State<HomeFeedPage> with AutomaticKeepAliveClientMixin<HomeFeedPage>{
+class _HomeFeedPageState extends State<HomeFeedPage> {
   RefreshController _refreshController =
   RefreshController(initialRefresh: true);
-  double _lastFeedScrollOffset = 0;
 
 
   @override
@@ -44,36 +40,46 @@ class _HomeFeedPageState extends State<HomeFeedPage> with AutomaticKeepAliveClie
   void initState() {
     // TODO: implement initState
     super.initState();
-    print("FEED PAGE REBUILD");
   }
   
 
   void _generateFeed(List<Map<String, dynamic>> feedData) async {
     print("Generating feed");
     List<Post> iposts = [];
+    QuerySnapshot isSaved = await Firestore.instance
+        .collection("insta_items")
+        .document(currentUserModel.id)
+        .collection("items")
+        .getDocuments();
     for (var postData in feedData) {
       Post post = Post.fromJSON(postData);
       await retrieveComments(post.postId).then((comments) {
         setState(() {
+          if(isSaved.documents != null) {
+           isSaved.documents.forEach((element) {
+             post.saved = element[post.postId];
+           });
+          }
           post.comments = comments;
         });
       });
       iposts.add(post);
     }
     setState(() {
+      iposts.sort((a,b) => a.timestamp.compareTo(b.timestamp));
       posts = iposts;
     });
   }
 
+
   Future<List<Comment>> retrieveComments(String postID) async {
     List<Comment> comments = List();
-    QuerySnapshot data = await Firestore.instance
+    QuerySnapshot commentData = await Firestore.instance
         .collection("insta_comments")
         .document(postID)
         .collection("comments")
         .getDocuments();
-    data.documents.forEach((element) {
-      print("ADDING COMMENT");
+    commentData.documents.forEach((element) {
       comments.add(Comment.fromDocument(element));
     });
     return comments;
@@ -85,7 +91,6 @@ class _HomeFeedPageState extends State<HomeFeedPage> with AutomaticKeepAliveClie
     print("Staring getFeed");
 
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    print(currentUserModel);
     String userId = currentUserModel.id.toString();
     var url =
         'https://us-central1-instashop-61ed4.cloudfunctions.net/getFeed?uid=' + userId;
@@ -94,7 +99,7 @@ class _HomeFeedPageState extends State<HomeFeedPage> with AutomaticKeepAliveClie
     String result;
     try {
       var request = await httpClient.getUrl(Uri.parse(url));
-      var response = await request.close();
+    var response = await request.close();
       if (response.statusCode == HttpStatus.ok) {
         String json = await response.transform(utf8.decoder).join();
         prefs.setString("feed", json);
@@ -109,12 +114,10 @@ class _HomeFeedPageState extends State<HomeFeedPage> with AutomaticKeepAliveClie
     } catch (exception) {
       result = 'Failed invoking the getFeed function. Exception: $exception';
     }
-    print(result);
     _refreshController.refreshCompleted();
   }
 
   void _onLoading() async{
-    print("LOADING");
     _refreshController.loadComplete();
   }
 
@@ -132,9 +135,7 @@ class _HomeFeedPageState extends State<HomeFeedPage> with AutomaticKeepAliveClie
 
   @override
   Widget build(BuildContext context) {
-    print("BUILD HOME FEED");
     List<Post> postsReversed = posts.reversed.toList();
-    postsReversed.forEach((element) {print(element.postId);});
     return Scaffold(
       appBar: AppBar(
         elevation: 1.0,
@@ -164,8 +165,11 @@ class _HomeFeedPageState extends State<HomeFeedPage> with AutomaticKeepAliveClie
           Builder(builder: (BuildContext context) {
             return IconButton(
               color: Colors.black,
-              icon: Icon(OMIcons.nearMe),
-              onPressed: () => showSnackbar(context, 'My Messages'),
+              icon: Icon(OMIcons.shoppingCart),
+              onPressed: () => Navigator.of(context)
+                  .push(MaterialPageRoute<bool>(builder: (BuildContext context) {
+                return ShoppingCart();
+              })),
             );
           }),
         ],
@@ -177,10 +181,7 @@ class _HomeFeedPageState extends State<HomeFeedPage> with AutomaticKeepAliveClie
         onLoading: _onLoading,
         child: posts.length > 0 ? ListView.builder(
           itemBuilder: (ctx, i) {
-            print("itembuilder");
-            print(postsReversed[i].postId);
-            print("end of itembuilder");
-            return PostWidget(postsReversed[i], currentUserModel.id);
+            return PostWidget(postsReversed[i]);
           },
           itemCount: postsReversed.length ,
           controller: widget.scrollController,
@@ -202,7 +203,4 @@ class _HomeFeedPageState extends State<HomeFeedPage> with AutomaticKeepAliveClie
       ),
     );
   }
-
-  @override
-  bool get wantKeepAlive => true;
 }

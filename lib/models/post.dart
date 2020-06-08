@@ -1,15 +1,6 @@
-import 'dart:convert';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_database/firebase_database.dart';
-import 'package:flutter/material.dart';
 import 'package:instashop/models/comment.dart';
-import 'package:instashop/models/user.dart';
-import 'package:instashop/pages/root_page.dart';
-import 'package:instashop/utils/data_parse_util.dart';
 import 'package:timeago/timeago.dart' as timeago;
-
-import 'like.dart';
 
 class Post {
 
@@ -22,6 +13,7 @@ class Post {
   final String description;
   final String ownerId;
   final String price;
+  bool saved;
   var timestamp;
 
 
@@ -34,7 +26,7 @@ class Post {
     this.ownerId,
     this.postId,
     this.price,
-    this.timestamp
+    this.timestamp,
   });
 
 
@@ -61,7 +53,8 @@ class Post {
       description: document['description'],
       postId: document.documentID,
       ownerId: document['ownerId'],
-      timestamp: document['timestamp']
+      timestamp: document['timestamp'],
+      price: document['price']
     );
   }
 

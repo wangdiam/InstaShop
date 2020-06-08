@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:instashop/models/user.dart';
 import 'package:instashop/pages/login_signup_page.dart';
@@ -7,7 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 User currentUserModel;
 BaseAuth baseAuth = Auth();
-AuthStatus authStatus = AuthStatus.NOT_DETERMINED;
+AuthStatus authStatus;
 
 enum AuthStatus {
   NOT_DETERMINED,
@@ -28,16 +29,35 @@ class _RootPageState extends State<RootPage> {
 
   @override
   void initState() {
+    getUser();
     super.initState();
-    baseAuth.getCurrentUser().then((user) {
-      setState(() {
-        if (user != null) {
-          _userId = user?.uid;
-          authStatus =
-          user?.uid == null ? AuthStatus.NOT_LOGGED_IN : AuthStatus.LOGGED_IN;
-        }
-      });
+//    baseAuth.getCurrentUser().then((user) {
+//      setState(() {
+//        if (user != null) {
+//          _userId = user?.uid;
+//          authStatus =
+//          user?.uid == null ? AuthStatus.NOT_LOGGED_IN : AuthStatus.LOGGED_IN;
+//          print(authStatus.toString());
+//        }
+//      });
+//    });
+  }
+
+  void getUser() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String userId = prefs.getString('userId');
+    print("userId: " + userId.toString());
+    setState(() {
+      authStatus = prefs.getString('userId') == null ? AuthStatus.NOT_LOGGED_IN : AuthStatus.LOGGED_IN;
     });
+    if (authStatus == AuthStatus.LOGGED_IN) {
+      await Firestore.instance.collection("insta_users").document(userId).get()
+          .then((value) {
+        setState(() {
+          currentUserModel = User.fromDocument(value);
+        });
+      });
+    }
   }
 
   void loginCallback() {
@@ -91,8 +111,10 @@ class _RootPageState extends State<RootPage> {
 
   @override
   Widget build(BuildContext context) {
+    print("ROOTPAGE AUTHSTATUS: " + authStatus.toString());
     switch (authStatus) {
       case AuthStatus.NOT_DETERMINED:
+        return Container();
       case AuthStatus.NOT_LOGGED_IN:
         return new LoginSignupPage(
           loginCallback: loginCallback,
@@ -100,20 +122,16 @@ class _RootPageState extends State<RootPage> {
         break;
       case AuthStatus.LOGGED_IN:
         //currentUser = User(name: _username, userID: userId, imageUrl: "assets/images/wangdiam.jpg");
-        if (_userId.length > 0 && _userId != null && currentUserModel != null) {
+        if (currentUserModel != null) {
           return MainScaffold(
             userId: currentUserModel.id,
             logoutCallback: logoutCallback,
           );
         } else
-          return LoginSignupPage(
-            loginCallback: loginCallback,
-          );
+          return Container();
         break;
       default:
-        return LoginSignupPage(
-          loginCallback: loginCallback,
-        );
+        return Container();
     }
   }
 }
