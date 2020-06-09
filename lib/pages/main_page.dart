@@ -49,7 +49,7 @@ class _MainScaffoldState extends State<MainScaffold> {
   void _onTabTapped(BuildContext context, int index) {
     // If index is 0, current page is the feed page
     // _scrollToTop() will only be called when the current page is the feed page
-    if (index == 0) {
+    if (index == 0 && _tabSelectedIndex == index) {
       _scrollToTop();
     } else {
       // Set state of current tapped BottomNavigationBar item to be selected
