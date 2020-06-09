@@ -440,6 +440,7 @@ class _PostWidgetState extends State<PostWidget> {
                               .sublist(widget.post.comments.length > 3
                                   ? widget.post.comments.length - 2
                                   : 0)
+                              .reversed
                               .map((Comment c) => CommentWidget(c))
                               .toList(),
                         ),
@@ -457,23 +458,6 @@ class _PostWidgetState extends State<PostWidget> {
                       fontWeight: FontWeight.w900),
                 ),
               ),
-              // Add a comment...
-//              Row(
-//                children: <Widget>[
-//                  AvatarWidget(
-//                    user: currentUserModel,
-//                    padding: EdgeInsets.only(right: 8.0),
-//                  ),
-//                  GestureDetector(
-//                    child: Text(
-//                      'Add a comment...',
-//                      style: TextStyle(color: Colors.grey),
-//                    ),
-//                    onTap: _showAddCommentModal,
-//                  ),
-//                ],
-//              ),
-              // Posted Timestamp
               Padding(
                 padding: EdgeInsets.only(top: 4.0),
                 child: Text(
