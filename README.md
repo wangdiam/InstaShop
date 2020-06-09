@@ -16,7 +16,7 @@ An Instagram-like social media where users are able to follow different merchant
 
 ## API(s) Used
 
-* [Firebase Functions API](https://firebase.google.com) - Firebase functions to retrieve data and send notifications
+* [Firebase Cloud Functions API](https://firebase.google.com) - Firebase Cloud Functions to retrieve data and send notifications
 
 ## Getting Started
 
