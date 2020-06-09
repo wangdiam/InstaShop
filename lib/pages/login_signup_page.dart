@@ -15,6 +15,8 @@ final googleSignIn = GoogleSignIn();
 final ref = Firestore.instance.collection('insta_users');
 final FirebaseMessaging _firebaseMessaging = FirebaseMessaging();
 
+// TODO: Redesign this page
+
 class LoginSignupPage extends StatefulWidget {
   LoginSignupPage({this.loginCallback});
 
@@ -22,7 +24,6 @@ class LoginSignupPage extends StatefulWidget {
 
   @override
   State<StatefulWidget> createState() => new _LoginSignupPageState();
-
 }
 
 class _LoginSignupPageState extends State<LoginSignupPage> {
@@ -40,8 +41,17 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
   bool _isLoginForm;
   bool _isLoading;
 
-  
-  // Check if form is valid before perform login or signup
+  @override
+  void initState() {
+    _errorMessage = "";
+    _isLoading = false;
+    _isLoginForm = true;
+    super.initState();
+  }
+
+  /*
+   * Check if form is valid before perform login or signup
+   */
   bool validateAndSave() {
     final form = _formKey.currentState;
     if (form.validate()) {
@@ -51,14 +61,15 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
     return false;
   }
 
-  // Perform login or signup
+  /*
+  * Perform login or signup depending on form state
+  * */
   void validateAndSubmit() async {
     setState(() {
       _errorMessage = "";
       _isLoading = true;
     });
     if (validateAndSave()) {
-      print("LOGIN SAVED");
       String userId = "";
       try {
         if (_isLoginForm) {
@@ -66,16 +77,14 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
           print('Signed in: $userId');
           SharedPreferences prefs = await SharedPreferences.getInstance();
           prefs.setString('userId', userId);
-          await ref.document(userId).get()
-          .then((value) {
+          await ref.document(userId).get().then((value) {
             setState(() {
               currentUserModel = User.fromDocument(value);
             });
           });
         } else {
           userId = await baseAuth.signUp(_email, _password);
-          //widget.auth.sendEmailVerification();
-          //_showVerifyEmailSentDialog();
+          // TODO: add email verification for newly created accounts
           print('Signed up user: $userId');
           ref.document(userId).setData({
             "id": userId,
@@ -97,7 +106,6 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
       } catch (e) {
         print('Error: $e');
         setState(() {
-          print("ERROR");
           _isLoading = false;
           _errorMessage = e.toString();
           _formKey.currentState.reset();
@@ -105,33 +113,38 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
       }
     } else {
       setState(() {
-        print("ERROR");
         _isLoading = false;
       });
     }
   }
 
+  /*
+  * Logs user in using Google Sign In
+  */
   void login() async {
     print("google login");
-    await _ensureLoggedIn(context)
-    .then((value) {
+    await _ensureLoggedIn(context).then((value) {
       setState(() {
         triedSilentLogin = true;
       });
     });
   }
 
+  /*
+  *  Automatically logs a user in if user was previously logged in
+  * */
   void silentLogin(BuildContext context) async {
     print("google silentlogin");
-    await _silentLogin(context)
-    .then((value) {
+    await _silentLogin(context).then((value) {
       setState(() {
         triedSilentLogin = true;
       });
     });
   }
 
-
+  /*
+  *  Checks to ensure that users have login credentials
+  * */
   Future<Null> _ensureLoggedIn(BuildContext context) async {
     GoogleSignInAccount user = googleSignIn.currentUser;
     if (user == null) {
@@ -143,11 +156,9 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
     }
 
     if (await auth.currentUser() == null) {
-
       final GoogleSignInAccount googleUser = await googleSignIn.signIn();
-      final GoogleSignInAuthentication googleAuth = await googleUser
-          .authentication;
-
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
 
       final AuthCredential credential = GoogleAuthProvider.getCredential(
         accessToken: googleAuth.accessToken,
@@ -159,19 +170,20 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
     print("Signed in with credential");
   }
 
+  /*
+  *  silentLogin() helper function
+  * */
   Future<Null> _silentLogin(BuildContext context) async {
     GoogleSignInAccount user = googleSignIn.currentUser;
 
     if (user == null) {
       user = await googleSignIn.signInSilently();
       await tryCreateUserRecord(context);
-      print("tried to create user record at silentlogin");
     }
-    print("User: " + user.toString());
     if (await auth.currentUser() == null && user != null) {
       final GoogleSignInAccount googleUser = await googleSignIn.signIn();
-      final GoogleSignInAuthentication googleAuth = await googleUser
-          .authentication;
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
 
       final AuthCredential credential = GoogleAuthProvider.getCredential(
         accessToken: googleAuth.accessToken,
@@ -182,6 +194,10 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
     }
   }
 
+  /*
+  * Sets up Android notification tokens
+  * TODO: Figure out if iOS needs the same thing
+  * */
   void setUpNotifications() {
     _setUpNotifications();
     setState(() {
@@ -214,38 +230,42 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
     }
   }
 
+  /*
+  * Creates user record if doesn't exist in Firestore
+  * Prompts user to create a username if signed up with Google
+  * If user record exists, set global currentUserModel to retrieved user record
+  * */
   Future<void> tryCreateUserRecord(BuildContext context) async {
     GoogleSignInAccount user = googleSignIn.currentUser;
     if (user == null) {
-      print("googleSignIn.currentUser = null");
       return null;
     }
     DocumentSnapshot userRecord = await ref.document(user.id).get();
     print("retrieved userRecord");
     if (userRecord.data == null) {
-      // no user record exists, time to create
+      // no user record exists, create user record
       print("creating userRecord");
       String userName = await Navigator.push(
         context,
         MaterialPageRoute(
             builder: (context) => Center(
-              child: Scaffold(
-                  appBar: AppBar(
-                    leading: Container(),
-                    title: Text('Fill out missing data',
-                        style: TextStyle(
-                            color: Colors.black,
-                            fontWeight: FontWeight.bold)),
-                    backgroundColor: Colors.white,
-                  ),
-                  body: ListView(
-                    children: <Widget>[
-                      Container(
-                        child: CreateAccount(),
+                  child: Scaffold(
+                      appBar: AppBar(
+                        leading: Container(),
+                        title: Text('Fill out missing data',
+                            style: TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold)),
+                        backgroundColor: Colors.white,
                       ),
-                    ],
-                  )),
-            )),
+                      body: ListView(
+                        children: <Widget>[
+                          Container(
+                            child: CreateAccount(),
+                          ),
+                        ],
+                      )),
+                )),
       );
 
       if (userName != null || userName.length != 0) {
@@ -261,7 +281,6 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
         });
       }
     }
-    print("trying to retrieve currentUserModel");
     await ref.document(user.id).get().then((value) {
       setState(() async {
         print(value.toString());
@@ -271,25 +290,13 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
         prefs.setString("userId", user.id);
         widget.loginCallback();
       });
-      return null;
     });
   }
 
-  @override
-  void initState() {
-    _errorMessage = "";
-    _isLoading = false;
-    _isLoginForm = true;
-    super.initState();
-  }
-
-  void resetForm() {
-    _formKey.currentState.reset();
-    _errorMessage = "";
-  }
-
+  /*
+  *  Toggles between login form and signup form
+  * */
   void toggleFormMode() {
-    resetForm();
     setState(() {
       _isLoginForm = !_isLoginForm;
     });
@@ -306,13 +313,16 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
     }
     return new Scaffold(
         body: Stack(
-          children: <Widget>[
-            _showForm(),
-            _showCircularProgress(),
-          ],
-        ));
+      children: <Widget>[
+        _showForm(),
+        _showCircularProgress(),
+      ],
+    ));
   }
 
+  /*
+  *  Circular Progress widget while loading
+  * */
   Widget _showCircularProgress() {
     if (_isLoading) {
       return Center(child: CircularProgressIndicator());
@@ -323,29 +333,9 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
     );
   }
 
-//  void _showVerifyEmailSentDialog() {
-//    showDialog(
-//      context: context,
-//      builder: (BuildContext context) {
-//        // return object of type Dialog
-//        return AlertDialog(
-//          title: new Text("Verify your account"),
-//          content:
-//              new Text("Link to verify account has been sent to your email"),
-//          actions: <Widget>[
-//            new FlatButton(
-//              child: new Text("Dismiss"),
-//              onPressed: () {
-//                toggleFormMode();
-//                Navigator.of(context).pop();
-//              },
-//            ),
-//          ],
-//        );
-//      },
-//    );
-//  }
-
+  /*
+  *  Form widget
+  * */
   Widget _showForm() {
     return new Container(
         padding: EdgeInsets.all(16.0),
@@ -353,38 +343,44 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
           key: _formKey,
           child: new ListView(
             shrinkWrap: true,
-            children: _isLoginForm ? <Widget>[
-              showLogo(),
-              showAppName(),
-              showEmailInput(),
-              showPasswordInput(),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: GestureDetector(
-                  onTap: login,
-                  child: Image.asset(
-                    "assets/images/google_signin_button.png",
-                    height: 60.0,
-                  ),
-                ),
-              ),
-              showPrimaryButton(),
-              showSecondaryButton(),
-              showErrorMessage(),
-            ] : <Widget>[
-              showLogo(),
-              showAppName(),
-              showUsernameInput(),
-              showEmailInput(),
-              showPasswordInput(),
-              showPrimaryButton(),
-              showSecondaryButton(),
-              showErrorMessage(),
-            ],
+            children: _isLoginForm
+                ? <Widget>[
+                    showLogo(),
+                    showAppName(),
+                    showEmailInput(),
+                    showPasswordInput(),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: GestureDetector(
+                        onTap: login,
+                        child: Image.asset(
+                          "assets/images/google_signin_button.png",
+                          height: 60.0,
+                        ),
+                      ),
+                    ),
+                    showPrimaryButton(),
+                    showSecondaryButton(),
+                    showErrorMessage(),
+                  ]
+                : <Widget>[
+                    showLogo(),
+                    showAppName(),
+                    showUsernameInput(),
+                    showEmailInput(),
+                    showPasswordInput(),
+                    showPrimaryButton(),
+                    showSecondaryButton(),
+                    showErrorMessage(),
+                  ],
           ),
         ));
   }
 
+  /*
+  *  Error message widget
+  *  TODO: handle error messages more gracefully
+  * */
   Widget showErrorMessage() {
     if (_errorMessage.length > 0 && _errorMessage != null) {
       return new Text(
@@ -402,6 +398,10 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
     }
   }
 
+  /*
+  *  Logo widget
+  *  TODO: Create our own logo
+  * */
   Widget showLogo() {
     return new Hero(
       tag: 'hero',
@@ -416,21 +416,24 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
     );
   }
 
+  /*
+  *  App name widget
+  * */
   Widget showAppName() {
     return Padding(
       padding: EdgeInsets.all(32.0),
       child: Center(
         child: Text(
           "InstaShop",
-          style: TextStyle(
-            fontSize: 60.0,
-            fontFamily: "Billabong"
-          ),
+          style: TextStyle(fontSize: 60.0, fontFamily: "Billabong"),
         ),
       ),
     );
   }
 
+  /*
+  *  Email input field widget
+  * */
   Widget showEmailInput() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(0.0, 16.0, 0.0, 0.0),
@@ -449,6 +452,10 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
       ),
     );
   }
+
+  /*
+  *  Username input field widget
+  * */
   Widget showUsernameInput() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(0.0, 16.0, 0.0, 0.0),
@@ -468,6 +475,9 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
     );
   }
 
+  /*
+  *  Password input field widget
+  * */
   Widget showPasswordInput() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(0.0, 16.0, 0.0, 16.0),
@@ -487,6 +497,9 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
     );
   }
 
+  /*
+  *  Button to switch between signup form and login form
+  * */
   Widget showSecondaryButton() {
     return new FlatButton(
         child: new Text(
@@ -495,6 +508,9 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
         onPressed: toggleFormMode);
   }
 
+  /*
+  *  Button to either signup or login depending on form state
+  * */
   Widget showPrimaryButton() {
     return new Padding(
         padding: EdgeInsets.fromLTRB(0.0, 0.0, 0.0, 0.0),

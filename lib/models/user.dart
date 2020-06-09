@@ -10,16 +10,15 @@ class User {
   Map followers;
   Map following;
 
-  User({
-    this.username,
-    this.id,
-    this.photoUrl,
-    this.email,
-    this.displayName,
-    this.followers,
-    this.following,
-    this.bio
-  });
+  User(
+      {this.username,
+      this.id,
+      this.photoUrl,
+      this.email,
+      this.displayName,
+      this.followers,
+      this.following,
+      this.bio});
 
   factory User.fromDocument(DocumentSnapshot document) {
     return User(

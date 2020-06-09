@@ -1,12 +1,10 @@
-import 'package:async/async.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:instashop/models/post.dart';
-import 'package:instashop/pages/profile_page.dart';
-import 'package:instashop/pages/root_page.dart';
 import 'package:instashop/utils/styles.dart';
+import 'package:instashop/widgets/image_tile_widget.dart';
 import 'package:instashop/widgets/post_widget.dart';
 import 'package:intl/intl.dart';
 
@@ -21,12 +19,10 @@ class BagWidget extends StatefulWidget {
     // TODO: implement createState
     return _BagWidgetState();
   }
-
 }
 
 class _BagWidgetState extends State<BagWidget> {
   var formatCurrency = NumberFormat.simpleCurrency();
-
 
   @override
   void initState() {
@@ -61,7 +57,8 @@ class _BagWidgetState extends State<BagWidget> {
                               child: Padding(
                                 padding: const EdgeInsets.all(8.0),
                                 child: CircleAvatar(
-                                  backgroundImage: CachedNetworkImageProvider(snapshot.data.data['photoUrl']),
+                                  backgroundImage: CachedNetworkImageProvider(
+                                      snapshot.data.data['photoUrl']),
                                   backgroundColor: Colors.grey,
                                 ),
                               ),
@@ -71,14 +68,19 @@ class _BagWidgetState extends State<BagWidget> {
                               children: [
                                 GestureDetector(
                                   child: Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 0.0),
-                                    child: Text(snapshot.data.data['username'], style: boldStyle),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 0.0),
+                                    child: Text(snapshot.data.data['username'],
+                                        style: boldStyle),
                                   ),
                                   onTap: () {
                                     openProfile(context, widget.ownerId, true);
                                   },
                                 ),
-                                Text("${widget.posts.length}" + ((widget.posts.length == 1) ? " item" : " items")),
+                                Text("${widget.posts.length}" +
+                                    ((widget.posts.length == 1)
+                                        ? " item"
+                                        : " items")),
                               ],
                             ),
                           ],
@@ -90,9 +92,10 @@ class _BagWidgetState extends State<BagWidget> {
                     }),
                 Spacer(),
                 FutureBuilder(
-                    future: getItems(),
+                    future: _getItems(),
                     builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-                      if (snapshot.data!=null && snapshot.data.documents.length != 0) {
+                      if (snapshot.data != null &&
+                          snapshot.data.documents.length != 0) {
                         double totalPrice = 0;
                         snapshot.data.documents.forEach((element) {
                           if (widget.posts.indexOf(element['postId']) != -1) {
@@ -106,27 +109,31 @@ class _BagWidgetState extends State<BagWidget> {
                           child: Column(
                             children: [
                               Padding(
-                                padding: const EdgeInsets.only(top: 0.0, bottom: 0.0),
-                                child: Text("${formatCurrency.format(totalPrice)}",
+                                padding: const EdgeInsets.only(
+                                    top: 0.0, bottom: 0.0),
+                                child: Text(
+                                  "${formatCurrency.format(totalPrice)}",
                                   style: boldStyle,
                                 ),
                               ),
-                              Text("+ shipping",
-                                style: TextStyle(color: Colors.grey,
-                                    fontWeight: FontWeight.w300),)
+                              Text(
+                                "+ shipping",
+                                style: TextStyle(
+                                    color: Colors.grey,
+                                    fontWeight: FontWeight.w300),
+                              )
                             ],
                           ),
                         );
                       }
                       return Container();
-                    }
-                )
+                    })
               ],
             ),
             SizedBox(
               height: 150,
               child: FutureBuilder(
-                future: getItems(),
+                future: _getItems(),
                 // ignore: missing_return
                 builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
                   List<Post> posts = [];
@@ -136,62 +143,64 @@ class _BagWidgetState extends State<BagWidget> {
                         posts.add(Post.fromDocument(element));
                       }
                     });
-                    return posts.length != 0 ? ListView.builder(itemBuilder: (ctx, i) {
-                      return Stack(
-                        children: [
-                          AspectRatio(
-                            aspectRatio: 1,
-                            child: Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(10.0),
-                                child: ImageTile(PostWidget(posts[i])),
-                              ),
-                            ),
-                          ),
-                          IgnorePointer(
-                            child: Align(
-                              alignment: Alignment.bottomCenter,
-                              child: Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Container(
-                                  height: 134,
-                                  width: 134,
-                                  decoration: new BoxDecoration(
-                                    borderRadius: BorderRadius.circular(10.0),
-                                    gradient: new LinearGradient(
-                                      end: const Alignment(0.0, -1),
-                                      begin: const Alignment(0.0, 0.4),
-                                      colors: <Color>[
-                                        const Color(0x3A000000),
-                                        Colors.grey.withOpacity(0.0),
-                                      ],
+                    return posts.length != 0
+                        ? ListView.builder(
+                            itemBuilder: (ctx, i) {
+                              return Stack(children: [
+                                AspectRatio(
+                                  aspectRatio: 1,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(10.0),
+                                      child: ImageTile(PostWidget(posts[i])),
                                     ),
-
                                   ),
                                 ),
-                              ),
-                            ),
-                          ),
-                          IgnorePointer(
-                            child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Align(
-                                alignment: Alignment.bottomLeft,
-                                child: Text("${formatCurrency.format(double.tryParse(posts[i].price.replaceAll(",", "")))}",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16.0
-                                ),),
-                              ),
-                            ),
+                                IgnorePointer(
+                                  child: Align(
+                                    alignment: Alignment.bottomCenter,
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Container(
+                                        height: 134,
+                                        width: 134,
+                                        decoration: new BoxDecoration(
+                                          borderRadius:
+                                              BorderRadius.circular(10.0),
+                                          gradient: new LinearGradient(
+                                            end: const Alignment(0.0, -1),
+                                            begin: const Alignment(0.0, 0.4),
+                                            colors: <Color>[
+                                              const Color(0x3A000000),
+                                              Colors.grey.withOpacity(0.0),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                IgnorePointer(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: Align(
+                                      alignment: Alignment.bottomLeft,
+                                      child: Text(
+                                        "${formatCurrency.format(double.tryParse(posts[i].price.replaceAll(",", "")))}",
+                                        style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 16.0),
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              ]);
+                            },
+                            itemCount: widget.posts.length,
+                            scrollDirection: Axis.horizontal,
                           )
-                        ]
-                      );
-                      },
-                      itemCount: widget.posts.length,
-                      scrollDirection: Axis.horizontal,
-                    ) : Container();
+                        : Container();
                   }
                   return Container();
                 },
@@ -204,12 +213,13 @@ class _BagWidgetState extends State<BagWidget> {
                 height: 50.0,
                 child: RaisedButton(
                   elevation: 5.0,
-                  child: Text("Checkout",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 32.0,
-                    fontWeight: FontWeight.w300
-                  ),),
+                  child: Text(
+                    "Checkout",
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 32.0,
+                        fontWeight: FontWeight.w300),
+                  ),
                   onPressed: () {},
                 ),
               ),
@@ -221,7 +231,7 @@ class _BagWidgetState extends State<BagWidget> {
     );
   }
 
-  Future<QuerySnapshot> getItems() async {
+  Future<QuerySnapshot> _getItems() async {
     return Firestore.instance
         .collection('insta_posts')
         .where("ownerId", isEqualTo: widget.ownerId)

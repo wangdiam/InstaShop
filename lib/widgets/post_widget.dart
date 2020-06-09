@@ -1,33 +1,23 @@
 import 'dart:async';
-import 'package:async/async.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:instashop/models/choice.dart';
 import 'package:instashop/models/comment.dart';
 import 'package:instashop/models/post.dart';
 import 'package:instashop/models/user.dart';
 import 'package:instashop/pages/comment_screen_page.dart';
 import 'package:instashop/pages/messaging/chat_page.dart';
-import 'package:instashop/pages/profile_page.dart';
 import 'package:instashop/pages/root_page.dart';
 import 'package:instashop/utils/heart_icon_animator.dart';
 import 'package:instashop/utils/heart_overlay_animator.dart';
 import 'package:instashop/utils/styles.dart';
+import 'package:instashop/widgets/image_tile_widget.dart';
 import 'package:outline_material_icons/outline_material_icons.dart';
 import 'package:carousel_slider/carousel_slider.dart';
-import 'package:instashop/widgets/avatar_widget.dart';
 import 'package:instashop/widgets/comment_widget.dart';
 import 'package:instashop/utils/ui_utils.dart';
-
-AsyncMemoizer memoizer = AsyncMemoizer();
-
-class Choice {
-  const Choice({this.title, this.icon});
-
-  final String title;
-  final IconData icon;
-}
 
 const List<Choice> choices = const <Choice>[
   const Choice(title: 'Report this post', icon: Icons.flag),
@@ -45,47 +35,52 @@ class PostWidget extends StatefulWidget {
 class _PostWidgetState extends State<PostWidget> {
   final StreamController<void> _doubleTapImageEvents =
       StreamController.broadcast();
-  bool _isSaved = false;
   int _currentImageIndex = 0;
   int _selectedChoice = 0;
   int likeCount = 0;
   bool liked;
   bool showHeart = false;
+  bool _isSaved = false;
   var reference = Firestore.instance.collection('insta_posts');
   List<String> likedUsers = List();
   List<String> likedUsersId = List();
 
-
   @override
   void initState() {
     super.initState();
-    liked = widget.post.likes[currentUserModel.id] != null && widget.post.likes[currentUserModel.id][currentUserModel.username];
+    
+    // Checks if post is liked by current user
+    liked = widget.post.likes[currentUserModel.id] != null &&
+        widget.post.likes[currentUserModel.id][currentUserModel.username];
     if (widget.post.likes != null) {
-      widget.post.likes.forEach((key,value) {
-        value.forEach((k,v) {
+      widget.post.likes.forEach((key, value) {
+        value.forEach((k, v) {
           if (v.toString() == true.toString()) {
             likedUsers.add(k);
             likedUsersId.add(key);
           }
         });
       });
-
     }
+    
+    // Checks if post is added to current user's cart
     if (widget.post.saved != null && widget.post.saved != false) {
       setState(() {
         _isSaved = true;
       });
     }
-
     _currentImageIndex = 0;
   }
+
   @override
   void dispose() {
     _doubleTapImageEvents.close();
     super.dispose();
   }
 
-
+  /*
+  *  Current user action: like or unlike this post
+  * */
   void _likePost() {
     var userId = currentUserModel.id;
     var userName = currentUserModel.username;
@@ -104,13 +99,11 @@ class _PostWidgetState extends State<PostWidget> {
       });
 
       removeActivityFeedItem();
-    }
-
-    else if (!liked) {
+    } else if (!liked) {
       print('liking');
-      reference.document(widget.post.postId).updateData({
-        'likes.$userId.$userName': true
-      });
+      reference
+          .document(widget.post.postId)
+          .updateData({'likes.$userId.$userName': true});
 
       addActivityFeedItem();
 
@@ -124,6 +117,9 @@ class _PostWidgetState extends State<PostWidget> {
     }
   }
 
+  /*
+  *  Add activity event to owner's activity feed
+  * */
   void addActivityFeedItem() {
     Firestore.instance
         .collection("insta_a_feed")
@@ -141,6 +137,9 @@ class _PostWidgetState extends State<PostWidget> {
     });
   }
 
+  /*
+  *  Removes activity event from owner's activity feed
+  * */
   void removeActivityFeedItem() {
     Firestore.instance
         .collection("insta_a_feed")
@@ -150,44 +149,61 @@ class _PostWidgetState extends State<PostWidget> {
         .delete();
   }
 
+  /*
+  *  Updates image index for ImageCarousel
+  *  TODO: Implement this carousel
+  * */
   void _updateImageIndex(int index) {
     setState(() => _currentImageIndex = index);
   }
 
+  /*
+  *  Triggers when user double taps photo of post
+  * */
   void _onDoubleTapLikePhoto() {
-//    setState(() => widget.post.addLikeIfUnlikedFor(currentUserModel));
     _doubleTapImageEvents.sink.add(null);
     _likePost();
   }
 
+  /*
+  *  Toggle item saved to current user's cart
+  * */
   void _toggleIsSavedToCart() {
     setState(() {
       _isSaved = !_isSaved;
       widget.post.saved = _isSaved;
     });
     if (_isSaved) {
-      addItemToCart(widget.post, currentUserModel.id);
+      _addItemToCart(widget.post, currentUserModel.id);
       showSnackbar(context, "Item has been added to cart!");
     } else {
-      removeItemFromCart(widget.post, currentUserModel.id);
+      _removeItemFromCart(widget.post, currentUserModel.id);
       showSnackbar(context, "Item has been removed from cart!");
     }
   }
 
-  void addItemToCart(Post post, String userID) async {
-    Firestore.instance.collection('insta_items')
-        .document(currentUserModel.id).collection("items").document(post.ownerId).setData({
-      "${post.postId}": true
-    },
-    merge: true);
+  /*
+  *  Add item to current user's cart
+  * */
+  void _addItemToCart(Post post, String userID) async {
+    Firestore.instance
+        .collection('insta_items')
+        .document(currentUserModel.id)
+        .collection("items")
+        .document(post.ownerId)
+        .setData({"${post.postId}": true}, merge: true);
   }
 
-  void removeItemFromCart(Post post, String userID) async {
-    Firestore.instance.collection('insta_items')
-        .document(currentUserModel.id).collection("items").document(post.ownerId).setData({
-      "${post.postId}": false
-    },
-    merge: true);
+  /*
+  *  Remove item from current user's cart
+  * */
+  void _removeItemFromCart(Post post, String userID) async {
+    Firestore.instance
+        .collection('insta_items')
+        .document(currentUserModel.id)
+        .collection("items")
+        .document(post.ownerId)
+        .setData({"${post.postId}": false}, merge: true);
   }
 
   void _select(Choice choice) {
@@ -195,28 +211,24 @@ class _PostWidgetState extends State<PostWidget> {
     setState(() {
       _selectedChoice = 0;
       //TODO: submit postID of post for report
+      //TODO: Implement delete post if current user is post's owner
     });
   }
-
-  void openProfile(BuildContext context, String userId, bool backButtonNeeded) {
-    Navigator.of(context)
-        .push(MaterialPageRoute<bool>(builder: (BuildContext context) {
-      return ProfilePage(userId: userId, backButtonNeeded: backButtonNeeded);
-    }));
-  }
-
 
   Container loadingPlaceHolder = Container(
     height: 400.0,
     child: Center(child: CircularProgressIndicator()),
   );
 
-  _fetchData() async {
-      var docs = await Firestore.instance
-          .collection('insta_users')
-          .document(widget.post.ownerId)
-          .get();
-      return docs;
+  /*
+  *  Fetch post owner's user data from Firestore
+  * */
+  Future<DocumentSnapshot>_fetchOwnerData() async {
+    var docs = await Firestore.instance
+        .collection('insta_users')
+        .document(widget.post.ownerId)
+        .get();
+    return docs;
   }
 
   @override
@@ -230,7 +242,7 @@ class _PostWidgetState extends State<PostWidget> {
           children: <Widget>[
             //AvatarWidget(user: widget.post.ownerId),
             FutureBuilder(
-                future: _fetchData(),
+                future: _fetchOwnerData(),
                 builder: (context, snapshot) {
                   if (snapshot.data != null) {
                     postOwnerPhotoUrl = snapshot.data.data['photoUrl'];
@@ -240,7 +252,8 @@ class _PostWidgetState extends State<PostWidget> {
                         Padding(
                           padding: const EdgeInsets.all(8.0),
                           child: CircleAvatar(
-                            backgroundImage: CachedNetworkImageProvider(snapshot.data.data['photoUrl']),
+                            backgroundImage: CachedNetworkImageProvider(
+                                snapshot.data.data['photoUrl']),
                             backgroundColor: Colors.grey,
                           ),
                         ),
@@ -248,7 +261,8 @@ class _PostWidgetState extends State<PostWidget> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             GestureDetector(
-                              child: Text(snapshot.data.data['username'], style: boldStyle),
+                              child: Text(snapshot.data.data['username'],
+                                  style: boldStyle),
                               onTap: () {
                                 openProfile(context, widget.post.ownerId, true);
                               },
@@ -263,20 +277,6 @@ class _PostWidgetState extends State<PostWidget> {
                   // snapshot data is null here
                   return Container();
                 }),
-//            Column(
-//              crossAxisAlignment: CrossAxisAlignment.start,
-//              children: <Widget>[
-//                Text.rich(
-//                    TextSpan(
-//                      text: widget.post.username,
-//                      style: bold,
-//                      recognizer: TapGestureRecognizer()
-//                      ..onTap = () {
-//                      print('Clicked Profile name');
-//                      })),
-//                if (widget.post.location != null) Text(widget.post.location)
-//              ],
-//            ),
             Spacer(),
             PopupMenuButton<Choice>(
               onSelected: _select,
@@ -291,7 +291,8 @@ class _PostWidgetState extends State<PostWidget> {
             ),
           ],
         ),
-        // Photo Carosuel
+        // Photo Carousel
+        // TODO: Include feature for multi picture posts
         GestureDetector(
           child: Stack(
             alignment: Alignment.center,
@@ -305,16 +306,7 @@ class _PostWidgetState extends State<PostWidget> {
                     placeholder: (context, url) => loadingPlaceHolder,
                     errorWidget: (context, url, error) => Icon(Icons.error),
                   ),
-//                  Container(
-//                      height: double.infinity,
-//                      width: double.infinity,
-//                      child: Image.asset(
-//                        widget.post.mediaUrl,
-//                        //height: MediaQuery.of(context).size.height,
-//                        width: MediaQuery.of(context).size.width,
-//                        fit: BoxFit.fitWidth,
-//                  )),
-                  ],
+                ],
                 viewportFraction: 1.0,
                 enableInfiniteScroll: false,
                 aspectRatio: 1,
@@ -333,7 +325,7 @@ class _PostWidgetState extends State<PostWidget> {
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: HeartIconAnimator(
-                isLiked: liked,//widget.post.isLikedBy(currentUserModel),
+                isLiked: liked, //widget.post.isLikedBy(currentUserModel),
                 size: 28.0,
                 onTap: _likePost,
                 triggerAnimationStream: _doubleTapImageEvents.stream,
@@ -343,8 +335,8 @@ class _PostWidgetState extends State<PostWidget> {
               padding: EdgeInsets.zero,
               iconSize: 28.0,
               icon: Icon(Icons.chat_bubble_outline),
-              onPressed: () =>  Navigator.of(context)
-                  .push(MaterialPageRoute<bool>(builder: (BuildContext context) {
+              onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<bool>(builder: (BuildContext context) {
                 return CommentScreen(
                   postId: widget.post.postId,
                   postOwner: widget.post.ownerId,
@@ -352,15 +344,21 @@ class _PostWidgetState extends State<PostWidget> {
                 );
               })),
             ),
-            (widget.post.ownerId != currentUserModel.id)? IconButton(
-              padding: EdgeInsets.zero,
-              iconSize: 28.0,
-              icon: Icon(OMIcons.nearMe),
-              onPressed: () => Navigator.of(context)
-                  .push(MaterialPageRoute<bool>(builder: (BuildContext context) {
-                return Chat(peerId: widget.post.ownerId, peerAvatar: postOwnerPhotoUrl, peerUserName: postOwnerName);
-              })),
-            ) : SizedBox(),
+            (widget.post.ownerId != currentUserModel.id)
+                ? IconButton(
+                    padding: EdgeInsets.zero,
+                    iconSize: 28.0,
+                    icon: Icon(OMIcons.nearMe),
+                    onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute<bool>(
+                            builder: (BuildContext context) {
+                      return Chat(
+                          peerId: widget.post.ownerId,
+                          peerAvatar: postOwnerPhotoUrl,
+                          peerUserName: postOwnerName);
+                    })),
+                  )
+                : SizedBox(),
             Spacer(),
 //            if (widget.post.imageUrls.length > 1)
 //              PhotoCarouselIndicator(
@@ -369,13 +367,16 @@ class _PostWidgetState extends State<PostWidget> {
 //              ),
             Spacer(),
             Spacer(),
-            (widget.post.ownerId != currentUserModel.id) ? IconButton(
-              padding: EdgeInsets.zero,
-              iconSize: 28.0,
-              icon:
-                  _isSaved ? Icon(OMIcons.removeShoppingCart) : Icon(OMIcons.addShoppingCart),
-              onPressed: _toggleIsSavedToCart,
-            ) : SizedBox()
+            (widget.post.ownerId != currentUserModel.id)
+                ? IconButton(
+                    padding: EdgeInsets.zero,
+                    iconSize: 28.0,
+                    icon: _isSaved
+                        ? Icon(OMIcons.removeShoppingCart)
+                        : Icon(OMIcons.addShoppingCart),
+                    onPressed: _toggleIsSavedToCart,
+                  )
+                : SizedBox()
           ],
         ),
         Padding(
@@ -390,26 +391,28 @@ class _PostWidgetState extends State<PostWidget> {
                   child: Row(
                     children: <Widget>[
                       Text('Liked by '),
-                      Text.rich(
-                          TextSpan(
-                              text: likedUsers[0],
-                              style: bold,
-                              recognizer: TapGestureRecognizer()
-                                ..onTap = () {
-                                  openProfile(context, likedUsersId[likedUsers.indexOf(likedUsers[0])], true);
-                                })),
+                      Text.rich(TextSpan(
+                          text: likedUsers[0],
+                          style: bold,
+                          recognizer: TapGestureRecognizer()
+                            ..onTap = () {
+                              openProfile(
+                                  context,
+                                  likedUsersId[
+                                      likedUsers.indexOf(likedUsers[0])],
+                                  true);
+                            })),
                       if (likedUsers.length > 1) ...[
                         Text(' and'),
-                        Text(' ${likedUsers.length - 1} others',
-                            style: bold),
+                        Text(' ${likedUsers.length - 1} others', style: bold),
                       ]
                     ],
                   ),
                 ),
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
-                onTap: () =>  Navigator.of(context)
-                    .push(MaterialPageRoute<bool>(builder: (BuildContext context) {
+                onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<bool>(builder: (BuildContext context) {
                   return CommentScreen(
                     postId: widget.post.postId,
                     postOwner: widget.post.ownerId,
@@ -421,18 +424,22 @@ class _PostWidgetState extends State<PostWidget> {
                     if (widget.post.description != null)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 0.0),
-                        child: Column(
-                            children: [
-                              CommentWidget.description(description: widget.post.description, username: widget.post.username, userId: widget.post.ownerId),
-                            ]
-                        ),
+                        child: Column(children: [
+                          CommentWidget.description(
+                              description: widget.post.description,
+                              username: widget.post.username,
+                              userId: widget.post.ownerId),
+                        ]),
                       ),
                     // Comments
                     if (widget.post.comments != null)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 4.0),
                         child: Column(
-                          children: widget.post.comments.sublist(widget.post.comments.length > 3 ? widget.post.comments.length - 2 : 0)
+                          children: widget.post.comments
+                              .sublist(widget.post.comments.length > 3
+                                  ? widget.post.comments.length - 2
+                                  : 0)
                               .map((Comment c) => CommentWidget(c))
                               .toList(),
                         ),
@@ -444,7 +451,10 @@ class _PostWidgetState extends State<PostWidget> {
                 padding: EdgeInsets.only(top: 4.0, bottom: 4.0),
                 child: Text(
                   "Price: \$${widget.post.price}",
-                  style: TextStyle(color: Colors.black, fontSize: 16.0, fontWeight: FontWeight.w900),
+                  style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 16.0,
+                      fontWeight: FontWeight.w900),
                 ),
               ),
               // Add a comment...
@@ -471,18 +481,11 @@ class _PostWidgetState extends State<PostWidget> {
                   style: TextStyle(color: Colors.grey, fontSize: 11.0),
                 ),
               )
-
             ],
           ),
         ),
       ],
     );
-  }
-
-
-
-  void _goToShoppingCart() {
-
   }
 }
 
@@ -584,11 +587,10 @@ class PostWidgetFromId extends StatelessWidget {
 
   getImagePost() async {
     var document =
-    await Firestore.instance.collection('insta_posts').document(id).get();
+        await Firestore.instance.collection('insta_posts').document(id).get();
     Post post = Post.fromDocument(document);
     return PostWidget(post);
   }
-
 
   @override
   Widget build(BuildContext context) {

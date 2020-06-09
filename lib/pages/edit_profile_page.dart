@@ -5,13 +5,16 @@ import 'package:instashop/pages/login_signup_page.dart';
 import 'package:instashop/pages/root_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+// TODO: Implement profile picture changing
 class EditProfilePage extends StatefulWidget {
   EditProfilePage();
   final TextEditingController nameController = TextEditingController();
   final TextEditingController bioController = TextEditingController();
 
-
-  applyChanges() {
+  /*
+  *  Public method applyChanges applies changes to user profile after user edits profile info
+  * */
+  void applyChanges() {
     Firestore.instance
         .collection('insta_users')
         .document(currentUserModel.id)
@@ -22,12 +25,9 @@ class EditProfilePage extends StatefulWidget {
   }
 
   _EditProfilePage createState() => _EditProfilePage();
-
 }
 
 class _EditProfilePage extends State<EditProfilePage> {
-
-
   changeProfilePhoto(BuildContext parentContext) {
     return showDialog(
       context: parentContext,
@@ -47,8 +47,10 @@ class _EditProfilePage extends State<EditProfilePage> {
     );
   }
 
-
-  Widget buildTextField({String name, TextEditingController controller}) {
+  /*
+  *  returns a custom text field widget
+  * */
+  Widget _buildTextField({String name, TextEditingController controller}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -111,24 +113,26 @@ class _EditProfilePage extends State<EditProfilePage> {
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   children: <Widget>[
-                    buildTextField(name: "Name", controller: widget.nameController),
-                    buildTextField(name: "Bio", controller: widget.bioController),
+                    _buildTextField(
+                        name: "Name", controller: widget.nameController),
+                    _buildTextField(
+                        name: "Bio", controller: widget.bioController),
                   ],
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: MaterialButton(
-                    onPressed: () => {_logout(context)},
-                    child: Text("Logout")
-
-                )
-              )
+                  padding: const EdgeInsets.all(16.0),
+                  child: MaterialButton(
+                      onPressed: () => {_logout(context)},
+                      child: Text("Logout")))
             ],
           );
         });
   }
 
+  /*
+  *  Logs user out of the account and pops back to RootPage
+  * */
   void _logout(BuildContext context) async {
     print("logout");
     await auth.signOut();
@@ -137,12 +141,12 @@ class _EditProfilePage extends State<EditProfilePage> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.clear();
 
-
     setState(() {
       authStatus = AuthStatus.NOT_LOGGED_IN;
       currentUserModel = null;
     });
-    Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context) =>
-        RootPage()), (Route<dynamic> route) => false);
+    Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => RootPage()),
+        (Route<dynamic> route) => false);
   }
 }

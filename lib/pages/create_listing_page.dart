@@ -24,7 +24,8 @@ class _Uploader extends State<Uploader> {
   Map<String, double> currentLocation = Map();
   TextEditingController descriptionController = TextEditingController();
   TextEditingController locationController = TextEditingController();
-  MoneyMaskedTextController moneyMaskedTextController = MoneyMaskedTextController(decimalSeparator: '.', thousandSeparator: ',');
+  MoneyMaskedTextController moneyMaskedTextController =
+      MoneyMaskedTextController(decimalSeparator: '.', thousandSeparator: ',');
 
   bool uploading = false;
 
@@ -33,36 +34,44 @@ class _Uploader extends State<Uploader> {
     //variables with location assigned as 0.0
     currentLocation['latitude'] = 0.0;
     currentLocation['longitude'] = 0.0;
-    initPlatformState(); //method to call location
+    _initPlatformState();
     super.initState();
   }
 
-  Future<File> getImageFileFromAssets(String path) async {
+  /*
+  *  Retrieves image file given a path
+  * */
+  Future<File> _getImageFileFromAssets(String path) async {
     final byteData = await rootBundle.load('assets/$path');
 
     final file = File('${(await getTemporaryDirectory()).path}/$path');
-    await file.writeAsBytes(byteData.buffer.asUint8List(byteData.offsetInBytes, byteData.lengthInBytes));
+    await file.writeAsBytes(byteData.buffer
+        .asUint8List(byteData.offsetInBytes, byteData.lengthInBytes));
 
     return file;
   }
 
-  //method to get Location and save into variables
-  initPlatformState() async {
+  /*
+  * Get Location and store them into the local variables
+  * */
+  void _initPlatformState() async {
     Address first = await getUserLocation();
-    //File defaultImageFile = await getImageFileFromAssets("images/ic_launcher.png");
+    //File defaultImageFile = await _getImageFileFromAssets("images/ic_launcher.png");
     setState(() {
       //file = defaultImageFile;
       address = first;
     });
   }
-  
-  buildAddListingPhotos(BuildContext context) {
+
+  /*
+  *  Listing photos
+  *  TODO: Change up the design of how the photos are shown
+  * */
+  Widget _buildAddListingPhotos(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text("Create New Listing",
-        style: TextStyle(
-            color: Colors.black, fontWeight: FontWeight.bold)
-        ),
+            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.white,
       ),
       body: Center(
@@ -73,36 +82,51 @@ class _Uploader extends State<Uploader> {
             children: [
               SizedBox(
                 width: 300,
-                child: RaisedButton(onPressed: () async {
-                  File imageFile =
-                  await ImagePicker.pickImage(source: ImageSource.camera, maxWidth: 1920, maxHeight: 1200, imageQuality: 100);
-                  setState(() {
-                    file = imageFile;
-                  });
-                },
+                child: RaisedButton(
+                  onPressed: () async {
+                    File imageFile = await ImagePicker.pickImage(
+                        source: ImageSource.camera,
+                        maxWidth: 1920,
+                        maxHeight: 1200,
+                        imageQuality: 100);
+                    setState(() {
+                      file = imageFile;
+                    });
+                  },
                   elevation: 5.0,
                   shape: new RoundedRectangleBorder(
                       borderRadius: new BorderRadius.circular(5.0)),
                   color: Colors.black,
                   child: new Text("Take a Photo",
-                      style: new TextStyle(fontSize: 20.0, color: Colors.white, fontWeight: FontWeight.w300)),),
+                      style: new TextStyle(
+                          fontSize: 20.0,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w300)),
+                ),
               ),
               SizedBox(
                 width: 300,
                 child: RaisedButton(
                   onPressed: () async {
-                  File imageFile =
-                  await ImagePicker.pickImage(source: ImageSource.gallery, maxWidth: 1920, maxHeight: 1200, imageQuality: 100);
-                  setState(() {
-                    file = imageFile;
-                  });
-                },
+                    File imageFile = await ImagePicker.pickImage(
+                        source: ImageSource.gallery,
+                        maxWidth: 1920,
+                        maxHeight: 1200,
+                        imageQuality: 100);
+                    setState(() {
+                      file = imageFile;
+                    });
+                  },
                   elevation: 5.0,
                   shape: new RoundedRectangleBorder(
                       borderRadius: new BorderRadius.circular(5.0)),
                   color: Colors.black,
                   child: new Text("Choose From Gallery",
-                      style: new TextStyle(fontSize: 20.0, color: Colors.white, fontWeight: FontWeight.w300)),),
+                      style: new TextStyle(
+                          fontSize: 20.0,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w300)),
+                ),
               ),
             ],
           ),
@@ -111,24 +135,22 @@ class _Uploader extends State<Uploader> {
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
     return file == null
-        ? buildAddListingPhotos(context)
+        ? _buildAddListingPhotos(context)
         : Scaffold(
             resizeToAvoidBottomPadding: false,
             appBar: AppBar(
               backgroundColor: Colors.white70,
               leading: IconButton(
                   icon: Icon(Icons.arrow_back, color: Colors.black),
-                  onPressed: clearImage),
+                  onPressed: _clearImage),
               title: const Text(
                 'Selling',
                 style: const TextStyle(color: Colors.black),
               ),
-              actions: <Widget>[
-              ],
+              actions: <Widget>[],
             ),
             body: Column(
               children: [
@@ -165,21 +187,27 @@ class _Uploader extends State<Uploader> {
                 ),
                 SizedBox(
                   width: 400,
-                  child: RaisedButton(onPressed: postImage,
+                  child: RaisedButton(
+                    onPressed: _postImage,
                     elevation: 5.0,
                     shape: new RoundedRectangleBorder(
                         borderRadius: new BorderRadius.circular(5.0)),
                     color: Colors.black,
                     child: new Text("Post Listing",
-                        style: new TextStyle(fontSize: 20.0, color: Colors.white, fontWeight: FontWeight.w300)),),
+                        style: new TextStyle(
+                            fontSize: 20.0,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w300)),
+                  ),
                 )
-
               ],
             ));
   }
 
-  //method to build buttons with location.
-  buildLocationButton(String locationName) {
+  /*
+  *  Location button widget
+  * */
+  Widget buildLocationButton(String locationName) {
     if (locationName != null ?? locationName.isNotEmpty) {
       return InkWell(
         onTap: () {
@@ -209,14 +237,19 @@ class _Uploader extends State<Uploader> {
     }
   }
 
-
-  void clearImage() {
+  /*
+  *  Clear existing images
+  * */
+  void _clearImage() {
     setState(() {
       file = null;
     });
   }
 
-  void postImage() {
+  /*
+  *  Post image to Firestore
+  * */
+  void _postImage() {
     setState(() {
       uploading = true;
     });
@@ -268,10 +301,10 @@ class PostForm extends StatelessWidget {
                   child: Container(
                     decoration: BoxDecoration(
                         image: DecorationImage(
-                          fit: BoxFit.fill,
-                          alignment: FractionalOffset.topCenter,
-                          image: FileImage(imageFile),
-                        )),
+                      fit: BoxFit.fill,
+                      alignment: FractionalOffset.topCenter,
+                      image: FileImage(imageFile),
+                    )),
                   ),
                 ),
               ),
@@ -279,12 +312,11 @@ class PostForm extends StatelessWidget {
           ],
         ),
         Padding(
-          padding: const EdgeInsets.only(left: 8.0, top: 16.0, bottom:8.0),
-          child: Text("DESCRIPTION",
-            style: TextStyle(
-                fontSize: 24.0,
-                fontWeight: FontWeight.w500
-            ),),
+          padding: const EdgeInsets.only(left: 8.0, top: 16.0, bottom: 8.0),
+          child: Text(
+            "DESCRIPTION",
+            style: TextStyle(fontSize: 24.0, fontWeight: FontWeight.w500),
+          ),
         ),
         Divider(),
         Row(
@@ -293,12 +325,14 @@ class PostForm extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: Container(
-                width: MediaQuery.of(context).size.width-32,
+                width: MediaQuery.of(context).size.width - 32,
                 child: TextField(
                   controller: descriptionController,
                   decoration: InputDecoration(
-                    hintMaxLines: 10,
-                      hintText: "Describe your item with information about the brand, condition, size, colour and style", border: InputBorder.none),
+                      hintMaxLines: 10,
+                      hintText:
+                          "Describe your item with information about the brand, condition, size, colour and style",
+                      border: InputBorder.none),
                 ),
               ),
             ),
@@ -306,24 +340,22 @@ class PostForm extends StatelessWidget {
         ),
         Divider(),
         Padding(
-          padding: const EdgeInsets.only(left: 8.0, top: 16.0, bottom:8.0),
-          child: Text("INFO",
-            style: TextStyle(
-                fontSize: 24.0,
-                fontWeight: FontWeight.w500
-            ),),
+          padding: const EdgeInsets.only(left: 8.0, top: 16.0, bottom: 8.0),
+          child: Text(
+            "INFO",
+            style: TextStyle(fontSize: 24.0, fontWeight: FontWeight.w500),
+          ),
         ),
         Divider(),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: <Widget>[
             Padding(
-              padding: const EdgeInsets.only(left: 8.0, top: 16.0, bottom:8.0),
-              child: Text("PRICE",
-                style: TextStyle(
-                    fontSize: 24.0,
-                    fontWeight: FontWeight.w200
-                ),),
+              padding: const EdgeInsets.only(left: 8.0, top: 16.0, bottom: 8.0),
+              child: Text(
+                "PRICE",
+                style: TextStyle(fontSize: 24.0, fontWeight: FontWeight.w200),
+              ),
             ),
             Padding(
               padding: const EdgeInsets.all(8.0),
@@ -332,7 +364,9 @@ class PostForm extends StatelessWidget {
                 child: TextField(
                   controller: moneyMaskedTextController,
                   decoration: InputDecoration(
-                      hintText: "Price", border: InputBorder.none,),
+                    hintText: "Price",
+                    border: InputBorder.none,
+                  ),
                 ),
               ),
             ),
@@ -342,12 +376,11 @@ class PostForm extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Padding(
-              padding: const EdgeInsets.only(left: 8.0, top: 16.0, bottom:8.0),
-              child: Text("LOCATION",
-                style: TextStyle(
-                    fontSize: 24.0,
-                    fontWeight: FontWeight.w200
-                ),),
+              padding: const EdgeInsets.only(left: 8.0, top: 16.0, bottom: 8.0),
+              child: Text(
+                "LOCATION",
+                style: TextStyle(fontSize: 24.0, fontWeight: FontWeight.w200),
+              ),
             ),
             Padding(
               padding: const EdgeInsets.all(8.0),
@@ -356,22 +389,12 @@ class PostForm extends StatelessWidget {
                 child: TextField(
                   controller: locationController,
                   decoration: InputDecoration(
-                    hintText: "Location", border: InputBorder.none,),
+                    hintText: "Location",
+                    border: InputBorder.none,
+                  ),
                 ),
               ),
             ),
-//            ListTile(
-//              leading: Icon(Icons.pin_drop),
-//              title: Container(
-//                width: 250.0,
-//                child: TextField(
-//                  controller: locationController,
-//                  decoration: InputDecoration(
-//                      hintText: "Location",
-//                      border: InputBorder.none),
-//                ),
-//              ),
-//            ),
           ],
         ),
       ],
@@ -379,6 +402,9 @@ class PostForm extends StatelessWidget {
   }
 }
 
+/*
+*  Public function uploadImage uploads image to Firestore
+* */
 Future<String> uploadImage(var imageFile) async {
   var uuid = Uuid().v1();
   StorageReference ref = FirebaseStorage.instance.ref().child("post_$uuid.jpg");
@@ -388,8 +414,14 @@ Future<String> uploadImage(var imageFile) async {
   return downloadUrl;
 }
 
+/*
+*  Public function postToFireStore posts created listing to Firestore
+* */
 void postToFireStore(
-    {String price, String mediaUrl, String location, String description}) async {
+    {String price,
+    String mediaUrl,
+    String location,
+    String description}) async {
   var reference = Firestore.instance.collection('insta_posts');
 
   reference.add({

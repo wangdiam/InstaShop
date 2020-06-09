@@ -2,28 +2,37 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:instashop/models/user.dart';
 import 'dart:async';
-import "profile_page.dart"; // needed to import for openProfile function
+
+import 'package:instashop/widgets/image_tile_widget.dart';
 
 class SearchPage extends StatefulWidget {
   _SearchPage createState() => _SearchPage();
 }
 
-class _SearchPage extends State<SearchPage> with AutomaticKeepAliveClientMixin<SearchPage>{
+class _SearchPage extends State<SearchPage>
+    with AutomaticKeepAliveClientMixin<SearchPage> {
   Future<QuerySnapshot> userDocs;
 
-  buildSearchField() {
+  /*
+  *  Appbar that consists of a text field
+  * */
+  Widget _buildSearchField() {
     return AppBar(
       backgroundColor: Colors.white,
       title: Form(
         child: TextFormField(
           decoration: InputDecoration(labelText: 'Search for items or people'),
-          onFieldSubmitted: submit,
+          onFieldSubmitted: _submit,
         ),
       ),
     );
   }
 
-  ListView buildSearchResults(List<DocumentSnapshot> docs) {
+  /*
+  *  Display search results
+  *  TODO: Integrate a better 3rd party search API instead of this garbage
+  * */
+  ListView _buildSearchResults(List<DocumentSnapshot> docs) {
     List<UserSearchItem> userSearchItems = [];
 
     docs.forEach((DocumentSnapshot doc) {
@@ -37,7 +46,10 @@ class _SearchPage extends State<SearchPage> with AutomaticKeepAliveClientMixin<S
     );
   }
 
-  void submit(String searchValue) async {
+  /*
+  *  Submit search value to Firestore then retrieve data generated
+  * */
+  void _submit(String searchValue) async {
     Future<QuerySnapshot> users = Firestore.instance
         .collection("insta_users")
         .where('username', isGreaterThanOrEqualTo: searchValue)
@@ -49,17 +61,17 @@ class _SearchPage extends State<SearchPage> with AutomaticKeepAliveClientMixin<S
   }
 
   Widget build(BuildContext context) {
-    super.build(context); // reloads state when opened again
+    super.build(context);
 
     return Scaffold(
-      appBar: buildSearchField(),
+      appBar: _buildSearchField(),
       body: userDocs == null
           ? Text("")
           : FutureBuilder<QuerySnapshot>(
               future: userDocs,
               builder: (context, snapshot) {
                 if (snapshot.hasData) {
-                  return buildSearchResults(snapshot.data.documents);
+                  return _buildSearchResults(snapshot.data.documents);
                 } else {
                   return Container(
                       alignment: FractionalOffset.center,

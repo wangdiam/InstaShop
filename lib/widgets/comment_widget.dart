@@ -1,9 +1,8 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:instashop/models/comment.dart';
-import 'package:instashop/pages/profile_page.dart';
 import 'package:instashop/utils/ui_utils.dart';
-
+import 'package:instashop/widgets/image_tile_widget.dart';
 
 class CommentWidget extends StatefulWidget {
   Comment comment;
@@ -13,10 +12,8 @@ class CommentWidget extends StatefulWidget {
   String description;
   String userId;
 
-
   CommentWidget(this.comment);
-  CommentWidget.description({
-    this.username,this.description, this.userId});
+  CommentWidget.description({this.username, this.description, this.userId});
 
   @override
   _CommentWidgetState createState() => _CommentWidgetState();
@@ -33,22 +30,22 @@ class _CommentWidgetState extends State<CommentWidget> {
   }
 
   @override
-  dispose() {
+  void dispose() {
     super.dispose();
   }
 
-  void openProfile(BuildContext context, String userId, bool backButtonNeeded) {
-    Navigator.of(context)
-        .push(MaterialPageRoute<bool>(builder: (BuildContext context) {
-      return ProfilePage(userId: userId, backButtonNeeded: backButtonNeeded);
-    }));
-  }
-
+  /*
+  *  Toggle the comment's expanded state
+  *  TODO: Actually add this into comments
+  * */
   void _toggleCommentIsExpanded() {
     if (flag) flag = false;
     setState(() => widget.comment.isExpanded(flag));
   }
 
+  /*
+  *  Build text span for a comment
+  * */
   Container _buildRichText() {
     var textSpans;
     if (widget.comment != null) {
@@ -75,9 +72,16 @@ class _CommentWidgetState extends State<CommentWidget> {
       });
       if (currentTextData.isNotEmpty) {
         if ((currentTextData.length + widget.comment.username.length) > 45) {
-          widget.firstHalf = currentTextData.toString().substring(0, 40-widget.comment.username.length);
-          widget.secondHalf = currentTextData.toString().substring(40-widget.comment.username.length, currentTextData.toString().length);
-          textSpans.add(TextSpan(text: (flag ? widget.firstHalf + "..." : widget.firstHalf + widget.secondHalf)));
+          widget.firstHalf = currentTextData
+              .toString()
+              .substring(0, 40 - widget.comment.username.length);
+          widget.secondHalf = currentTextData.toString().substring(
+              40 - widget.comment.username.length,
+              currentTextData.toString().length);
+          textSpans.add(TextSpan(
+              text: (flag
+                  ? widget.firstHalf + "..."
+                  : widget.firstHalf + widget.secondHalf)));
         } else {
           widget.firstHalf = currentTextData.toString();
           widget.secondHalf = "";
@@ -110,9 +114,15 @@ class _CommentWidgetState extends State<CommentWidget> {
       });
       if (currentTextData.isNotEmpty) {
         if ((currentTextData.length + widget.username.length) > 45) {
-          widget.firstHalf = currentTextData.toString().substring(0, 40-widget.username.length);
-          widget.secondHalf = currentTextData.toString().substring(40-widget.username.length, currentTextData.toString().length);
-          textSpans.add(TextSpan(text: (flag ? widget.firstHalf + "..." : widget.firstHalf + widget.secondHalf)));
+          widget.firstHalf = currentTextData
+              .toString()
+              .substring(0, 40 - widget.username.length);
+          widget.secondHalf = currentTextData.toString().substring(
+              40 - widget.username.length, currentTextData.toString().length);
+          textSpans.add(TextSpan(
+              text: (flag
+                  ? widget.firstHalf + "..."
+                  : widget.firstHalf + widget.secondHalf)));
         } else {
           widget.firstHalf = currentTextData.toString();
           widget.secondHalf = "";
@@ -123,43 +133,41 @@ class _CommentWidgetState extends State<CommentWidget> {
       }
     }
 
-    //return Text.rich(TextSpan(children: textSpans));
     return new Container(
       padding: new EdgeInsets.symmetric(horizontal: 0.0),
       child: widget.secondHalf != null
           ? new Text.rich(TextSpan(children: textSpans))
           : new Row(
-        children: <Widget>[
-          //new Text(widget.flag ? (widget.firstHalf + "...") : (widget.firstHalf + widget.secondHalf)),
-          Container(
-            constraints: new BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width - 80),
-            child: Text.rich(TextSpan(children: textSpans)),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: new InkWell(
-              child: new Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  new Text(
-                    flag ? "more" : "",
-                    style: new TextStyle(color: Colors.grey),
+              children: <Widget>[
+                //new Text(widget.flag ? (widget.firstHalf + "...") : (widget.firstHalf + widget.secondHalf)),
+                Container(
+                  constraints: new BoxConstraints(
+                      maxWidth: MediaQuery.of(context).size.width - 80),
+                  child: Text.rich(TextSpan(children: textSpans)),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: new InkWell(
+                    child: new Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: <Widget>[
+                        new Text(
+                          flag ? "more" : "",
+                          style: new TextStyle(color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                    onTap: () {
+                      setState(() {
+                        _toggleCommentIsExpanded();
+                      });
+                    },
                   ),
-                ],
-              ),
-              onTap: () {
-                setState(() {
-                  _toggleCommentIsExpanded();
-                });
-              },
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
     );
   }
-
 
   @override
   Widget build(BuildContext context) {

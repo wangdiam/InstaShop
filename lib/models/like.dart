@@ -5,8 +5,5 @@ class Like {
   final User user;
   final String likedAt;
 
-  Like({
-    @required this.user,
-    @required this.likedAt
-  });
+  Like({@required this.user, @required this.likedAt});
 }

@@ -36,7 +36,7 @@ class _CommentScreenState extends State<CommentScreen> {
           icon: Icon(Icons.arrow_back),
           color: Colors.black,
           onPressed: () {
-            Navigator.maybePop(context);
+            Navigator.pop(context);
           },
         ),
         title: Text(
@@ -45,35 +45,44 @@ class _CommentScreenState extends State<CommentScreen> {
         ),
         backgroundColor: Colors.white,
       ),
-      body: buildPage(),
+      body: _buildPage(),
     );
   }
 
-  Widget buildPage() {
+  /*
+  *  Comment Screen Page widget
+  * */
+  Widget _buildPage() {
     return Column(
       children: [
         Expanded(
-          child:
-            buildComments(),
+          child: _buildComments(),
         ),
         Divider(),
         ListTile(
           title: TextFormField(
             controller: _commentController,
             decoration: InputDecoration(labelText: 'Add a comment...'),
-            onFieldSubmitted: addComment,
+            onFieldSubmitted: _addComment,
           ),
-          trailing: OutlineButton(onPressed: (){addComment(_commentController.text);}, borderSide: BorderSide.none, child: Text("Post"),),
+          trailing: OutlineButton(
+            onPressed: () {
+              _addComment(_commentController.text);
+            },
+            borderSide: BorderSide.none,
+            child: Text("Post"),
+          ),
         ),
-
       ],
     );
-
   }
 
-  Widget buildCommentTile(Comment comment) {
+  /*
+  *  Comment tile widget
+  * */
+  Widget _buildCommentTile(Comment comment) {
     return Padding(
-      padding: const EdgeInsets.only(top:8.0, bottom: 8.0),
+      padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -84,11 +93,9 @@ class _CommentScreenState extends State<CommentScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    Text(comment.timeAgo(),
-                      style: TextStyle(
-                          fontSize: 10.0,
-                          color: Colors.black26
-                      ),
+                    Text(
+                      comment.timeAgo(),
+                      style: TextStyle(fontSize: 10.0, color: Colors.black26),
                     ),
                   ],
                 )
@@ -103,10 +110,12 @@ class _CommentScreenState extends State<CommentScreen> {
     );
   }
 
-
-  Widget buildComments() {
+  /*
+  *  Build comment list
+  * */
+  Widget _buildComments() {
     return FutureBuilder<List<Comment>>(
-        future: getComments(),
+        future: _getComments(),
         builder: (context, snapshot) {
           if (!snapshot.hasData)
             return Container(
@@ -115,13 +124,17 @@ class _CommentScreenState extends State<CommentScreen> {
 
           return ListView(
             children: commentList.map((comment) {
-              return buildCommentTile(comment);
+              return _buildCommentTile(comment);
             }).toList(),
           );
         });
   }
 
-  Future<List<Comment>> getComments() async {
+  /*
+  *  Retrieves comments from Firestore
+  *  TODO: Something tells me that I can simply use comment data from post widget that's already fetched
+  * */
+  Future<List<Comment>> _getComments() async {
     List<Comment> comments = [];
 
     QuerySnapshot data = await Firestore.instance
@@ -139,15 +152,14 @@ class _CommentScreenState extends State<CommentScreen> {
     return comments;
   }
 
-  addComment(String comment) {
+  void _addComment(String comment) {
     _commentController.clear();
     Comment newComment = Comment(
-      username: currentUserModel.username,
-      comment: comment,
-      timestamp: DateTime.now(),
-      avatarUrl: currentUserModel.photoUrl,
-      userId: currentUserModel.id
-    );
+        username: currentUserModel.username,
+        comment: comment,
+        timestamp: DateTime.now(),
+        avatarUrl: currentUserModel.photoUrl,
+        userId: currentUserModel.id);
     setState(() {
       commentList.add(newComment);
     });

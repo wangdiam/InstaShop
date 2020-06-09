@@ -1,7 +1,3 @@
-/* File to get location of user
-* used dependencies - location => to get location coordinates of user,
-*   - geoLocation => To get Address from the location coordinates
- */
 import 'package:flutter/services.dart';
 import 'package:geocoder/geocoder.dart';
 import 'package:location/location.dart';
@@ -23,8 +19,8 @@ getUserLocation() async {
     }
     currentLocation = null;
   }
-  final coordinates = Coordinates(
-      currentLocation.latitude, currentLocation.longitude);
+  final coordinates =
+      Coordinates(currentLocation.latitude, currentLocation.longitude);
   var addresses =
       await Geocoder.local.findAddressesFromCoordinates(coordinates);
   var first = addresses.first;

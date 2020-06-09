@@ -11,10 +11,10 @@ class Comment {
 
   Comment(
       {this.username,
-        this.userId,
-        this.avatarUrl,
-        this.comment,
-        this.timestamp});
+      this.userId,
+      this.avatarUrl,
+      this.comment,
+      this.timestamp});
 
   factory Comment.fromDocument(DocumentSnapshot document) {
     return Comment(
@@ -33,23 +33,11 @@ class Comment {
   String timeAgo() {
     final now = DateTime.now();
     try {
-      return timeago.format(
-          now.subtract(
-              now.difference(
-                  DateTime.fromMillisecondsSinceEpoch(timestamp['_seconds']*1000)
-              )
-          )
-      );
+      return timeago.format(now.subtract(now.difference(
+          DateTime.fromMillisecondsSinceEpoch(timestamp['_seconds'] * 1000))));
     } catch (e) {
-      return timeago.format(
-          now.subtract(
-              now.difference(
-                  timestamp.runtimeType == DateTime ? timestamp : timestamp.toDate()
-              )
-          )
-      );
+      return timeago.format(now.subtract(now.difference(
+          timestamp.runtimeType == DateTime ? timestamp : timestamp.toDate())));
     }
-
   }
-
 }

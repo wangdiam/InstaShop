@@ -2,8 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:instashop/models/user.dart';
 import 'package:instashop/pages/login_signup_page.dart';
+import 'package:instashop/pages/main_page.dart';
 import 'package:instashop/services/authentication.dart';
-import 'package:instashop/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 User currentUserModel;
@@ -24,105 +24,91 @@ class RootPage extends StatefulWidget {
 }
 
 class _RootPageState extends State<RootPage> {
-  String _userId = "";
   User user;
 
   @override
   void initState() {
-    getUser();
+    _getUser();
     super.initState();
-//    baseAuth.getCurrentUser().then((user) {
-//      setState(() {
-//        if (user != null) {
-//          _userId = user?.uid;
-//          authStatus =
-//          user?.uid == null ? AuthStatus.NOT_LOGGED_IN : AuthStatus.LOGGED_IN;
-//          print(authStatus.toString());
-//        }
-//      });
-//    });
   }
 
-  void getUser() async {
+  /*
+  *  Retrieves user records from SharedPreferences.
+  * */
+  void _getUser() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String userId = prefs.getString('userId');
-    print("userId: " + userId.toString());
     setState(() {
-      authStatus = prefs.getString('userId') == null ? AuthStatus.NOT_LOGGED_IN : AuthStatus.LOGGED_IN;
+      // If entry exists in SharedPreferences, authStatus will be set to Authstatus.LOGGED_IN and vice versa
+      authStatus = prefs.getString('userId') == null
+          ? AuthStatus.NOT_LOGGED_IN
+          : AuthStatus.LOGGED_IN;
     });
+    // If authStatus == AuthStatus.LOGGED_IN, retrieve user data from Firestore
+    // TODO: move all Firestore methods to its own utils class
     if (authStatus == AuthStatus.LOGGED_IN) {
-      await Firestore.instance.collection("insta_users").document(userId).get()
+      await Firestore.instance
+          .collection("insta_users")
+          .document(userId)
+          .get()
           .then((value) {
         setState(() {
+          // Sets global currentUserModel to the fetched user data
           currentUserModel = User.fromDocument(value);
         });
       });
     }
   }
 
+/*
+*  Login Callback function
+*  TODO: remove legacy code that is useless after implementation of Sign In with Google
+* */
+
   void loginCallback() {
-    print("logincallback");
-    print(googleSignIn.currentUser.toString());
-    print(currentUserModel.toString());
     if (currentUserModel == null) {
-      if (_userId == "") {
-        setState(() {
-          authStatus = AuthStatus.NOT_LOGGED_IN;
-        });
-        return;
-      }
-    } else {
-      baseAuth.getCurrentUser().then((user) {
-        setState(() {
-          _userId = currentUserModel.id;
-        });
-      });
       setState(() {
         authStatus = AuthStatus.LOGGED_IN;
       });
     }
   }
 
+  /*
+*  Logout Callback function
+*  TODO: remove legacy code that is useless after implementation of Sign In with Google
+* */
   void logoutCallback() async {
-    print("logout");
+    // Sign out
     await auth.signOut();
     await googleSignIn.signOut();
 
+    // Clear SharedPreferences so that no user data will be stored
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.clear();
 
+    // Set global currentUserModel to null
     currentUserModel = null;
     setState(() {
+      // Set authStatus to AuthStatus.NOT_LOGGED_IN
       authStatus = AuthStatus.NOT_LOGGED_IN;
-      _userId = "";
     });
   }
-
-  Widget buildWaitingScreen() {
-    return Scaffold(
-      body: Container(
-        alignment: Alignment.center,
-        child: CircularProgressIndicator(),
-      ),
-    );
-  }
-
-
 
   @override
   Widget build(BuildContext context) {
     print("ROOTPAGE AUTHSTATUS: " + authStatus.toString());
     switch (authStatus) {
       case AuthStatus.NOT_DETERMINED:
+        // TODO: return an app loading page instead of an empty container widget
         return Container();
       case AuthStatus.NOT_LOGGED_IN:
+        // Creates LoginSignupPage if user is not logged in
         return new LoginSignupPage(
           loginCallback: loginCallback,
         );
-        break;
       case AuthStatus.LOGGED_IN:
-        //currentUser = User(name: _username, userID: userId, imageUrl: "assets/images/wangdiam.jpg");
         if (currentUserModel != null) {
+          // Creates MainScaffold if user is logged in, else return an empty container widget
           return MainScaffold(
             userId: currentUserModel.id,
             logoutCallback: logoutCallback,
