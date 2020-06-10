@@ -167,6 +167,7 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
 
       await auth.signInWithCredential(credential);
     }
+    widget.loginCallback();
     print("Signed in with credential");
   }
 
@@ -281,13 +282,13 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
         });
       }
     }
-    await ref.document(user.id).get().then((value) {
-      setState(() async {
+    await ref.document(user.id).get().then((value) async {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      prefs.setString("userId", user.id);
+      setState(() {
         print(value.toString());
         currentUserModel = User.fromDocument(value);
         print("Retrieved currentUserModel");
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        prefs.setString("userId", user.id);
         widget.loginCallback();
       });
     });

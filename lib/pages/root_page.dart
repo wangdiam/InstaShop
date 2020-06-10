@@ -66,7 +66,8 @@ class _RootPageState extends State<RootPage> {
 * */
 
   void loginCallback() {
-    if (currentUserModel == null) {
+    print(currentUserModel.toString());
+    if (currentUserModel != null) {
       setState(() {
         authStatus = AuthStatus.LOGGED_IN;
       });
