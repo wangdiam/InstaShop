@@ -9,10 +9,9 @@ import 'package:outline_material_icons/outline_material_icons.dart';
 import 'package:instashop/pages/home_feed_page.dart';
 
 class MainScaffold extends StatefulWidget {
-  MainScaffold({Key key, this.userId, this.logoutCallback}) : super(key: key);
+  MainScaffold({Key key, this.logoutCallback}) : super(key: key);
 
   final VoidCallback logoutCallback;
-  final String userId;
 
   @override
   _MainScaffoldState createState() => _MainScaffoldState();
@@ -20,8 +19,6 @@ class MainScaffold extends StatefulWidget {
 
 class _MainScaffoldState extends State<MainScaffold> {
   int _tabSelectedIndex = 0;
-  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
-
   final PageStorageBucket bucket = PageStorageBucket();
 
   // Save the home page scrolling offset,

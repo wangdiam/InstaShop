@@ -104,14 +104,13 @@ class _RootPageState extends State<RootPage> {
         return Container();
       case AuthStatus.NOT_LOGGED_IN:
         // Creates LoginSignupPage if user is not logged in
-        return new LoginSignupPage(
+        return LoginSignupPage(
           loginCallback: loginCallback,
         );
       case AuthStatus.LOGGED_IN:
         if (currentUserModel != null) {
           // Creates MainScaffold if user is logged in, else return an empty container widget
           return MainScaffold(
-            userId: currentUserModel.id,
             logoutCallback: logoutCallback,
           );
         } else

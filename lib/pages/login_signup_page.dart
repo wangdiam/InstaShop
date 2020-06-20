@@ -12,7 +12,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 final auth = FirebaseAuth.instance;
 final googleSignIn = GoogleSignIn();
-final ref = Firestore.instance.collection('insta_users');
 final FirebaseMessaging _firebaseMessaging = FirebaseMessaging();
 
 // TODO: Redesign this page
@@ -27,6 +26,7 @@ class LoginSignupPage extends StatefulWidget {
 }
 
 class _LoginSignupPageState extends State<LoginSignupPage> {
+  final ref = Firestore.instance.collection('insta_users');
   final _formKey = new GlobalKey<FormState>();
   bool triedSilentLogin = false;
   bool setupNotifications = false;
@@ -312,7 +312,7 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
     if (setupNotifications == false && currentUserModel != null) {
       setUpNotifications();
     }
-    return new Scaffold(
+    return Scaffold(
         body: Stack(
       children: <Widget>[
         _showForm(),

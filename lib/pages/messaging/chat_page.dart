@@ -90,6 +90,8 @@ class ChatScreenState extends State<ChatScreen> {
     isLoading = false;
     isShowSticker = false;
     imageUrl = '';
+
+    readLocal();
   }
 
   /*
@@ -103,6 +105,17 @@ class ChatScreenState extends State<ChatScreen> {
       });
     }
   }
+
+  readLocal() async {
+    prefs = await SharedPreferences.getInstance();
+    id = prefs.getString('userId') ?? '';
+    if (id.hashCode <= peerId.hashCode) {
+      groupChatId = '$id-$peerId';
+    } else {
+      groupChatId = '$peerId-$id';
+    }
+    setState(() {});
+  }
   
   /*
   *  Adds message to Firestore
@@ -112,7 +125,7 @@ class ChatScreenState extends State<ChatScreen> {
     // type: 0 = text, 1 = image, 2 = sticker
     if (content.trim() != '') {
       textEditingController.clear();
-
+      
       var documentReference = Firestore.instance
           .collection('messages')
           .document(groupChatId)

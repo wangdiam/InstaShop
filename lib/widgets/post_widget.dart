@@ -162,7 +162,7 @@ class _PostWidgetState extends State<PostWidget> {
   * */
   void _onDoubleTapLikePhoto() {
     _doubleTapImageEvents.sink.add(null);
-    _likePost();
+    if (!liked) _likePost();
   }
 
   /*

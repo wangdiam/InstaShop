@@ -298,6 +298,7 @@ class MainChatScreenState extends State<MainChatScreen> {
                                   return Container();
                                 } else {
                                   lastMessage = snapshot.data.documents;
+                                  print(lastMessage[0].toString());
                                   return Container(
                                     child: Text(
                                       '${lastMessage[0]['content']}',
