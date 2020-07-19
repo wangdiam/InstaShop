@@ -1,4 +1,5 @@
 # InstaShop
+WARNING: PROJECT HAS BEEN DISCONTINUED. USE YOUR OWN FIREBASE CREDENTIALS.
 
 A social media platform for users to sell clothes and apparels.
 
